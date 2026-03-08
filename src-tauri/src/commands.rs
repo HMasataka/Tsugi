@@ -1,5 +1,6 @@
 use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
-use crate::session::{CliType, SessionManager, SessionState, SessionStatus};
+use crate::project::{Project, ProjectStore, RecentDirectory};
+use crate::session::{CliType, SessionEntry, SessionInfo, SessionManager, SessionState, SessionStatus};
 use serde::Serialize;
 use std::path::PathBuf;
 use tauri::ipc::Channel;
@@ -18,8 +19,10 @@ pub enum SessionEvent {
 pub async fn start_session(
     cwd: String,
     cli_type: String,
+    resume_session_id: Option<String>,
     state: tauri::State<'_, SessionManager>,
-) -> Result<(), String> {
+    project_store: tauri::State<'_, ProjectStore>,
+) -> Result<String, String> {
     let cli = match cli_type.as_str() {
         "claude-code" => CliType::ClaudeCode,
         "codex" => CliType::Codex,
@@ -31,57 +34,73 @@ pub async fn start_session(
         return Err(format!("Directory does not exist: {}", cwd));
     }
 
+    let id = state.generate_id().await;
+
     let session_state = SessionState {
-        session_id: None,
+        session_id: resume_session_id,
         cwd: path,
         cli_type: cli,
         status: SessionStatus::Idle,
     };
 
-    let mut lock = state.state.lock().await;
-    *lock = Some(session_state);
+    let entry = SessionEntry {
+        state: session_state,
+        child: None,
+        started_at: std::time::Instant::now(),
+    };
 
-    Ok(())
+    let mut sessions = state.sessions.lock().await;
+    sessions.insert(id.clone(), entry);
+
+    // Record as recently used directory
+    if let Err(e) = project_store.record_recent_dir(&cwd) {
+        log::warn!("Failed to record recent directory: {}", e);
+    }
+
+    Ok(id)
 }
 
 #[tauri::command]
 pub async fn send_prompt(
+    session_id: String,
     prompt: String,
     on_event: Channel<SessionEvent>,
     state: tauri::State<'_, SessionManager>,
 ) -> Result<(), String> {
-    let (cwd, session_id, cli_type) = {
-        let mut lock = state.state.lock().await;
-        let session = lock.as_mut().ok_or("No active session")?;
-        if session.status == SessionStatus::Running {
+    let (cwd, resume_id, cli_type) = {
+        let mut sessions = state.sessions.lock().await;
+        let entry = sessions
+            .get_mut(&session_id)
+            .ok_or_else(|| format!("Session not found: {}", session_id))?;
+        if entry.state.status == SessionStatus::Running {
             return Err("Session is already running".to_string());
         }
-        session.status = SessionStatus::Running;
+        entry.state.status = SessionStatus::Running;
         (
-            session.cwd.clone(),
-            session.session_id.clone(),
-            session.cli_type.clone(),
+            entry.state.cwd.clone(),
+            entry.state.session_id.clone(),
+            entry.state.cli_type.clone(),
         )
     };
 
     let adapter: Box<dyn CliAdapter> = match cli_type {
         CliType::ClaudeCode => Box::new(ClaudeCodeAdapter),
         CliType::Codex => {
-            let mut lock = state.state.lock().await;
-            if let Some(session) = lock.as_mut() {
-                session.status = SessionStatus::Idle;
+            let mut sessions = state.sessions.lock().await;
+            if let Some(entry) = sessions.get_mut(&session_id) {
+                entry.state.status = SessionStatus::Idle;
             }
             return Err("Codex adapter is not implemented".to_string());
         }
     };
 
-    let mut cmd = adapter.build_command(&prompt, &cwd, session_id.as_deref());
+    let mut cmd = adapter.build_command(&prompt, &cwd, resume_id.as_deref());
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
-            let mut lock = state.state.lock().await;
-            if let Some(session) = lock.as_mut() {
-                session.status = SessionStatus::Idle;
+            let mut sessions = state.sessions.lock().await;
+            if let Some(entry) = sessions.get_mut(&session_id) {
+                entry.state.status = SessionStatus::Idle;
             }
             return Err(format!("Failed to spawn process: {}", e));
         }
@@ -98,8 +117,10 @@ pub async fn send_prompt(
         .ok_or("Failed to capture stderr")?;
 
     {
-        let mut child_lock = state.child.lock().await;
-        *child_lock = Some(child);
+        let mut sessions = state.sessions.lock().await;
+        if let Some(entry) = sessions.get_mut(&session_id) {
+            entry.child = Some(child);
+        }
     }
 
     let stderr_event = on_event.clone();
@@ -115,14 +136,15 @@ pub async fn send_prompt(
         }
     });
 
+    let session_id_for_update = session_id.clone();
     let mut reader = BufReader::new(stdout).lines();
 
     while let Ok(Some(line)) = reader.next_line().await {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
             if let Some(sid) = extract_session_id(&json) {
-                let mut lock = state.state.lock().await;
-                if let Some(session) = lock.as_mut() {
-                    session.session_id = Some(sid.clone());
+                let mut sessions = state.sessions.lock().await;
+                if let Some(entry) = sessions.get_mut(&session_id_for_update) {
+                    entry.state.session_id = Some(sid.clone());
                 }
                 if on_event
                     .send(SessionEvent::SessionStarted { session_id: sid })
@@ -141,9 +163,13 @@ pub async fn send_prompt(
     }
 
     let exit_code = {
-        let mut child_lock = state.child.lock().await;
-        if let Some(ref mut child) = *child_lock {
-            child.wait().await.ok().and_then(|s| s.code())
+        let mut sessions = state.sessions.lock().await;
+        if let Some(entry) = sessions.get_mut(&session_id_for_update) {
+            if let Some(ref mut child) = entry.child {
+                child.wait().await.ok().and_then(|s| s.code())
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -157,15 +183,11 @@ pub async fn send_prompt(
     }
 
     {
-        let mut lock = state.state.lock().await;
-        if let Some(session) = lock.as_mut() {
-            session.status = SessionStatus::Idle;
+        let mut sessions = state.sessions.lock().await;
+        if let Some(entry) = sessions.get_mut(&session_id_for_update) {
+            entry.state.status = SessionStatus::Idle;
+            entry.child = None;
         }
-    }
-
-    {
-        let mut child_lock = state.child.lock().await;
-        *child_lock = None;
     }
 
     Ok(())
@@ -182,41 +204,118 @@ fn extract_session_id(json: &serde_json::Value) -> Option<String> {
 
 #[tauri::command]
 pub async fn abort_prompt(
+    session_id: String,
     state: tauri::State<'_, SessionManager>,
 ) -> Result<(), String> {
-    let mut child_lock = state.child.lock().await;
-    if let Some(ref mut child) = *child_lock {
+    let mut sessions = state.sessions.lock().await;
+    let entry = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
+
+    if let Some(ref mut child) = entry.child {
         let _ = child.kill().await;
     }
-    *child_lock = None;
+    entry.child = None;
+    entry.state.status = SessionStatus::Idle;
 
-    let mut lock = state.state.lock().await;
-    if let Some(session) = lock.as_mut() {
-        session.status = SessionStatus::Idle;
-    }
     Ok(())
 }
 
 #[tauri::command]
 pub async fn stop_session(
+    session_id: String,
     state: tauri::State<'_, SessionManager>,
 ) -> Result<(), String> {
-    {
-        let mut child_lock = state.child.lock().await;
-        if let Some(ref mut child) = *child_lock {
-            let _ = child.kill().await;
-        }
-        *child_lock = None;
-    }
+    let mut sessions = state.sessions.lock().await;
+    let entry = sessions
+        .remove(&session_id)
+        .ok_or_else(|| format!("Session not found: {}", session_id))?;
 
-    {
-        let mut lock = state.state.lock().await;
-        if let Some(session) = lock.as_mut() {
-            session.status = SessionStatus::Terminated;
-        }
+    if let Some(mut child) = entry.child {
+        let _ = child.kill().await;
     }
 
     Ok(())
+}
+
+#[tauri::command]
+pub async fn stop_all_sessions(
+    state: tauri::State<'_, SessionManager>,
+) -> Result<(), String> {
+    let mut sessions = state.sessions.lock().await;
+    for entry in sessions.values_mut() {
+        if let Some(ref mut child) = entry.child {
+            let _ = child.kill().await;
+        }
+        entry.child = None;
+        entry.state.status = SessionStatus::Terminated;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn list_sessions(
+    state: tauri::State<'_, SessionManager>,
+) -> Result<Vec<SessionInfo>, String> {
+    let sessions = state.sessions.lock().await;
+    let now = std::time::Instant::now();
+
+    let infos: Vec<SessionInfo> = sessions
+        .iter()
+        .map(|(id, entry)| {
+            let pid = entry
+                .child
+                .as_ref()
+                .and_then(|c| c.id());
+            SessionInfo {
+                id: id.clone(),
+                pid,
+                cwd: entry.state.cwd.to_string_lossy().to_string(),
+                cli_type: entry.state.cli_type.clone(),
+                status: entry.state.status.clone(),
+                elapsed_secs: now.duration_since(entry.started_at).as_secs(),
+            }
+        })
+        .collect();
+
+    Ok(infos)
+}
+
+#[tauri::command]
+pub async fn register_project(
+    name: String,
+    path: String,
+    cli_type: String,
+    store: tauri::State<'_, ProjectStore>,
+) -> Result<Project, String> {
+    let cli = match cli_type.as_str() {
+        "claude-code" => CliType::ClaudeCode,
+        "codex" => CliType::Codex,
+        other => return Err(format!("Unknown CLI type: {}", other)),
+    };
+    store.register(name, path, cli)
+}
+
+#[tauri::command]
+pub async fn unregister_project(
+    project_id: String,
+    store: tauri::State<'_, ProjectStore>,
+) -> Result<(), String> {
+    store.unregister(&project_id)
+}
+
+#[tauri::command]
+pub async fn list_projects(
+    store: tauri::State<'_, ProjectStore>,
+) -> Result<Vec<Project>, String> {
+    store.list_projects()
+}
+
+#[tauri::command]
+pub async fn list_recent_dirs(
+    store: tauri::State<'_, ProjectStore>,
+) -> Result<Vec<RecentDirectory>, String> {
+    store.list_recent_dirs()
 }
 
 #[cfg(test)]

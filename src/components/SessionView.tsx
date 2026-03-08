@@ -6,9 +6,9 @@ import { PromptInput } from "./PromptInput";
 import { QueuePanel } from "./QueuePanel";
 
 interface SessionViewProps {
-  state: SessionState;
-  queueState: QueueState;
-  onStartSession: (cwd: string, cliType: CliType) => Promise<void>;
+  state: SessionState | null;
+  queueState: QueueState | null;
+  onStartSession: (cwd: string, cliType: CliType, resumeSessionId?: string) => Promise<void>;
   onSendPrompt: (prompt: string) => void;
   onStopSession: () => Promise<void>;
   onAddItem: (prompt: string) => void;
@@ -60,6 +60,7 @@ export function SessionView({
 }: SessionViewProps) {
   const [selectedCwd, setSelectedCwd] = useState<string | null>(null);
   const [selectedCli, setSelectedCli] = useState<CliType>("claude-code");
+  const [resumeId, setResumeId] = useState("");
 
   const handleSelectDirectory = useCallback(async () => {
     const selected = await open({ directory: true });
@@ -70,10 +71,11 @@ export function SessionView({
 
   const handleStart = useCallback(async () => {
     if (!selectedCwd) return;
-    await onStartSession(selectedCwd, selectedCli);
-  }, [selectedCwd, selectedCli, onStartSession]);
+    await onStartSession(selectedCwd, selectedCli, resumeId || undefined);
+  }, [selectedCwd, selectedCli, resumeId, onStartSession]);
 
-  if (state.status === "terminated") {
+  // Show setup form when no state or terminated
+  if (!state || state.status === "terminated") {
     return (
       <div className="session-setup">
         <h2 className="session-setup-title">Start a Session</h2>
@@ -100,6 +102,17 @@ export function SessionView({
                 Codex (coming soon)
               </option>
             </select>
+          </div>
+          <div className="form-group">
+            <label className="form-label">Resume Session ID (optional)</label>
+            <input
+              className="form-value"
+              type="text"
+              placeholder="e.g., abc-123"
+              value={resumeId}
+              onChange={(e) => setResumeId(e.target.value)}
+              style={{ cursor: "text" }}
+            />
           </div>
           <button
             className="btn btn-primary"
@@ -139,23 +152,25 @@ export function SessionView({
             onSend={onSendPrompt}
           />
         </div>
-        <QueuePanel
-          state={queueState}
-          onAddItem={onAddItem}
-          onAddItems={onAddItems}
-          onRemoveItem={onRemoveItem}
-          onEditItem={onEditItem}
-          onReorder={onReorder}
-          onToggleAutoRun={onToggleAutoRun}
-          onClearCompleted={onClearCompleted}
-          onPause={onPause}
-          onResume={onResume}
-          onRetryItem={onRetryItem}
-          onAbort={onAbort}
-          onSetItemTimeout={onSetItemTimeout}
-          onConfirmExecute={onConfirmExecute}
-          onConfirmSkip={onConfirmSkip}
-        />
+        {queueState && (
+          <QueuePanel
+            state={queueState}
+            onAddItem={onAddItem}
+            onAddItems={onAddItems}
+            onRemoveItem={onRemoveItem}
+            onEditItem={onEditItem}
+            onReorder={onReorder}
+            onToggleAutoRun={onToggleAutoRun}
+            onClearCompleted={onClearCompleted}
+            onPause={onPause}
+            onResume={onResume}
+            onRetryItem={onRetryItem}
+            onAbort={onAbort}
+            onSetItemTimeout={onSetItemTimeout}
+            onConfirmExecute={onConfirmExecute}
+            onConfirmSkip={onConfirmSkip}
+          />
+        )}
       </div>
     </>
   );

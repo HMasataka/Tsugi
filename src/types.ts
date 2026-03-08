@@ -52,3 +52,42 @@ export interface QueueState {
   paused: boolean;
   confirmingItemId: string | null;
 }
+
+// Multi-session types
+export interface SessionEntry {
+  id: string;
+  state: SessionState;
+  queueState: QueueState;
+  startedAt: number;
+}
+
+export interface SessionManagerState {
+  sessions: SessionEntry[];
+  activeSessionId: string | null;
+}
+
+// Backend session info from list_sessions
+export interface SessionInfo {
+  id: string;
+  pid: number | null;
+  cwd: string;
+  cliType: CliType;
+  status: SessionStatus;
+  elapsedSecs: number;
+}
+
+// Project types
+export interface Project {
+  id: string;
+  name: string;
+  path: string;
+  cliType: CliType;
+  lastOpenedAt: number;
+}
+
+export interface RecentDirectory {
+  path: string;
+  lastUsedAt: number;
+}
+
+export type PageId = "sessions" | "projects";

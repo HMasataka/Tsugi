@@ -1,16 +1,26 @@
-import { useEffect, useCallback, useRef } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useEffect, useCallback, useRef, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
 import { SessionView } from "./components/SessionView";
+import { SessionTabBar } from "./components/SessionTabBar";
+import { ProjectsView } from "./components/ProjectsView";
 import { StatusBar } from "./components/StatusBar";
-import { useSession } from "./hooks/useSession";
-import { useQueue } from "./hooks/useQueue";
+import { useSessionManager } from "./hooks/useSessionManager";
+import type { PageId, CliType } from "./types";
 
 function App() {
-  const { state, startSession, sendPrompt, stopSession } = useSession();
+  const [activePage, setActivePage] = useState<PageId>("sessions");
+  const [showSetup, setShowSetup] = useState(false);
+
   const {
-    state: queueState,
+    state: managerState,
+    activeSession,
+    startSession,
+    sendPrompt,
+    stopSession,
+    closeSession,
+    setActiveSession,
+    abortPrompt,
     addItem,
     addItems,
     removeItem,
@@ -19,37 +29,51 @@ function App() {
     setItemStatus,
     toggleAutoRun,
     clearCompleted,
-    pause,
-    resume,
+    pauseQueue,
+    resumeQueue,
     skipItem,
     retryItem,
     setItemTimeout,
     confirmItem,
     clearConfirming,
-  } = useQueue();
+  } = useSessionManager();
 
   const abortRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const activeId = managerState.activeSessionId;
+  const sessionState = activeSession?.state ?? null;
+  const queueState = activeSession?.queueState ?? null;
+
+  const handleStartSession = useCallback(
+    async (cwd: string, cliType: CliType, resumeSessionId?: string) => {
+      await startSession(cwd, cliType, resumeSessionId);
+      setShowSetup(false);
+    },
+    [startSession],
+  );
+
   const handleManualSend = useCallback(
     (prompt: string) => {
-      void sendPrompt(prompt);
+      if (!activeId) return;
+      void sendPrompt(activeId, prompt);
     },
-    [sendPrompt],
+    [activeId, sendPrompt],
   );
 
   const executeItem = useCallback(
     (itemId: string, prompt: string, timeoutMs: number | null) => {
-      setItemStatus(itemId, "running");
+      if (!activeId) return;
+      setItemStatus(activeId, itemId, "running");
 
       if (timeoutMs) {
         timeoutRef.current = setTimeout(() => {
           abortRef.current = true;
-          void invoke("abort_prompt");
+          void abortPrompt(activeId);
         }, timeoutMs);
       }
 
-      void sendPrompt(prompt, (code) => {
+      void sendPrompt(activeId, prompt, (code) => {
         if (timeoutRef.current) {
           clearTimeout(timeoutRef.current);
           timeoutRef.current = null;
@@ -57,45 +81,78 @@ function App() {
 
         const resultStatus = abortRef.current ? "failed" : code === 0 ? "completed" : "failed";
         abortRef.current = false;
-        setItemStatus(itemId, resultStatus);
+        if (activeId) {
+          setItemStatus(activeId, itemId, resultStatus);
+        }
       });
     },
-    [sendPrompt, setItemStatus],
+    [activeId, sendPrompt, setItemStatus, abortPrompt],
   );
 
   const handleAbort = useCallback(() => {
+    if (!activeId) return;
     abortRef.current = true;
-    void invoke("abort_prompt");
-  }, []);
+    void abortPrompt(activeId);
+  }, [activeId, abortPrompt]);
+
+  const handleStopSession = useCallback(async () => {
+    if (!activeId) return;
+    await stopSession(activeId);
+  }, [activeId, stopSession]);
 
   const handleRetry = useCallback(
     (id: string) => {
-      retryItem(id);
+      if (!activeId) return;
+      retryItem(activeId, id);
     },
-    [retryItem],
+    [activeId, retryItem],
   );
 
   const handleConfirmExecute = useCallback(
     (id: string) => {
+      if (!activeId || !queueState) return;
       const item = queueState.items.find((i) => i.id === id);
       if (!item) return;
-      clearConfirming();
+      clearConfirming(activeId);
       executeItem(item.id, item.prompt, item.timeoutMs);
     },
-    [queueState.items, clearConfirming, executeItem],
+    [activeId, queueState, clearConfirming, executeItem],
   );
 
   const handleConfirmSkip = useCallback(
     (id: string) => {
-      skipItem(id);
-      clearConfirming();
+      if (!activeId) return;
+      skipItem(activeId, id);
+      clearConfirming(activeId);
     },
-    [skipItem, clearConfirming],
+    [activeId, skipItem, clearConfirming],
   );
 
+  const handleNewSession = useCallback(() => {
+    setShowSetup(true);
+    setActivePage("sessions");
+  }, []);
+
+  const handleCloseSession = useCallback(
+    (sessionId: string) => {
+      void closeSession(sessionId);
+    },
+    [closeSession],
+  );
+
+  const handleOpenProjectSession = useCallback(
+    (cwd: string, cliType: CliType) => {
+      setActivePage("sessions");
+      void startSession(cwd, cliType);
+    },
+    [startSession],
+  );
+
+  // Auto-execute queue items for the active session
   useEffect(() => {
+    if (!activeId || !queueState || !sessionState) return;
     if (queueState.paused) return;
-    if (state.status !== "idle") return;
+    if (sessionState.status !== "idle") return;
 
     const hasRunning = queueState.items.some((item) => item.status === "running");
     if (hasRunning) return;
@@ -107,48 +164,100 @@ function App() {
       executeItem(nextItem.id, nextItem.prompt, nextItem.timeoutMs);
     } else {
       if (queueState.confirmingItemId !== nextItem.id) {
-        confirmItem(nextItem.id);
+        confirmItem(activeId, nextItem.id);
       }
     }
   }, [
-    queueState.autoRun,
-    queueState.paused,
-    queueState.items,
-    queueState.confirmingItemId,
-    state.status,
+    activeId,
+    queueState,
+    sessionState,
     executeItem,
     confirmItem,
   ]);
 
+  const shouldShowSetup =
+    showSetup || (activePage === "sessions" && managerState.sessions.length === 0);
+
   return (
     <div className="app">
       <div className="main-layout">
-        <Sidebar />
+        <Sidebar
+          activePage={activePage}
+          onNavigate={setActivePage}
+          sessionCount={managerState.sessions.length}
+        />
         <div className="content">
-          <SessionView
-            state={state}
-            queueState={queueState}
-            onStartSession={startSession}
-            onSendPrompt={handleManualSend}
-            onStopSession={stopSession}
-            onAddItem={addItem}
-            onAddItems={addItems}
-            onRemoveItem={removeItem}
-            onEditItem={editItem}
-            onReorder={reorder}
-            onToggleAutoRun={toggleAutoRun}
-            onClearCompleted={clearCompleted}
-            onPause={pause}
-            onResume={resume}
-            onRetryItem={handleRetry}
-            onAbort={handleAbort}
-            onSetItemTimeout={setItemTimeout}
-            onConfirmExecute={handleConfirmExecute}
-            onConfirmSkip={handleConfirmSkip}
-          />
+          {activePage === "sessions" && (
+            <>
+              {managerState.sessions.length > 0 && (
+                <SessionTabBar
+                  sessions={managerState.sessions}
+                  activeSessionId={managerState.activeSessionId}
+                  onSelectSession={(id) => {
+                    setActiveSession(id);
+                    setShowSetup(false);
+                  }}
+                  onCloseSession={handleCloseSession}
+                  onNewSession={handleNewSession}
+                />
+              )}
+              {shouldShowSetup || !activeSession ? (
+                <SessionView
+                  state={null}
+                  queueState={null}
+                  onStartSession={handleStartSession}
+                  onSendPrompt={handleManualSend}
+                  onStopSession={handleStopSession}
+                  onAddItem={(prompt) => activeId && addItem(activeId, prompt)}
+                  onAddItems={(prompts) => activeId && addItems(activeId, prompts)}
+                  onRemoveItem={(id) => activeId && removeItem(activeId, id)}
+                  onEditItem={(id, prompt) => activeId && editItem(activeId, id, prompt)}
+                  onReorder={(from, to) => activeId && reorder(activeId, from, to)}
+                  onToggleAutoRun={() => activeId && toggleAutoRun(activeId)}
+                  onClearCompleted={() => activeId && clearCompleted(activeId)}
+                  onPause={() => activeId && pauseQueue(activeId)}
+                  onResume={() => activeId && resumeQueue(activeId)}
+                  onRetryItem={handleRetry}
+                  onAbort={handleAbort}
+                  onSetItemTimeout={(id, ms) => activeId && setItemTimeout(activeId, id, ms)}
+                  onConfirmExecute={handleConfirmExecute}
+                  onConfirmSkip={handleConfirmSkip}
+                />
+              ) : (
+                <SessionView
+                  state={activeSession.state}
+                  queueState={activeSession.queueState}
+                  onStartSession={handleStartSession}
+                  onSendPrompt={handleManualSend}
+                  onStopSession={handleStopSession}
+                  onAddItem={(prompt) => addItem(activeId!, prompt)}
+                  onAddItems={(prompts) => addItems(activeId!, prompts)}
+                  onRemoveItem={(id) => removeItem(activeId!, id)}
+                  onEditItem={(id, prompt) => editItem(activeId!, id, prompt)}
+                  onReorder={(from, to) => reorder(activeId!, from, to)}
+                  onToggleAutoRun={() => toggleAutoRun(activeId!)}
+                  onClearCompleted={() => clearCompleted(activeId!)}
+                  onPause={() => pauseQueue(activeId!)}
+                  onResume={() => resumeQueue(activeId!)}
+                  onRetryItem={handleRetry}
+                  onAbort={handleAbort}
+                  onSetItemTimeout={(id, ms) => setItemTimeout(activeId!, id, ms)}
+                  onConfirmExecute={handleConfirmExecute}
+                  onConfirmSkip={handleConfirmSkip}
+                />
+              )}
+            </>
+          )}
+          {activePage === "projects" && (
+            <ProjectsView onOpenSession={handleOpenProjectSession} />
+          )}
         </div>
       </div>
-      <StatusBar status={state.status} cliType={state.cliType} />
+      <StatusBar
+        status={sessionState?.status ?? null}
+        cliType={sessionState?.cliType ?? null}
+        sessionCount={managerState.sessions.length}
+      />
     </div>
   );
 }
