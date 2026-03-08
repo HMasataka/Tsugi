@@ -9,7 +9,9 @@ use crate::project::{Project, ProjectStore, RecentDirectory};
 use crate::session::{
     CliType, SessionEntry, SessionInfo, SessionManager, SessionState, SessionStatus,
 };
+use crate::settings::{Settings, SettingsStore};
 use crate::util;
+use crate::worktree;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, Ordering};
@@ -536,6 +538,7 @@ pub async fn execute_flow(
     session_id: Option<String>,
     on_event: Channel<FlowExecutionEvent>,
     flow_store: tauri::State<'_, FlowStore>,
+    settings_store: tauri::State<'_, SettingsStore>,
     execution_manager: tauri::State<'_, Arc<FlowExecutionManager>>,
 ) -> Result<String, String> {
     let cli = match cli_type.as_str() {
@@ -550,6 +553,8 @@ pub async fn execute_flow(
     }
 
     let flow = flow_store.get(&flow_id)?;
+    let settings = settings_store.get()?;
+    let use_worktree = settings.auto_worktree_for_flows;
     let exec_id = util::generate_id();
 
     {
@@ -566,9 +571,28 @@ pub async fn execute_flow(
     let manager_clone = Arc::clone(&execution_manager);
 
     tokio::spawn(async move {
+        let worktree_path = if use_worktree {
+            match worktree::create_worktree(&path).await {
+                Ok(wt_path) => Some(wt_path),
+                Err(e) => {
+                    log::warn!("Failed to create worktree: {}", e);
+                    let _ = on_event.send(FlowExecutionEvent::FlowFailed {
+                        error: format!("Worktree creation failed: {}. Flow aborted to prevent unintended changes to the original repository.", e),
+                    });
+                    let mut executions = manager_clone.executions.lock().await;
+                    executions.remove(&exec_id_clone);
+                    return;
+                }
+            }
+        } else {
+            None
+        };
+
+        let effective_cwd = worktree_path.as_deref().unwrap_or(&path);
+
         let result = FlowRunner::execute_flow(
             &flow.steps,
-            &path,
+            effective_cwd,
             &cli,
             session_id.as_deref(),
             &on_event,
@@ -576,6 +600,13 @@ pub async fn execute_flow(
             &manager_clone,
         )
         .await;
+
+        // Clean up worktree
+        if let Some(ref wt_path) = worktree_path {
+            if let Err(e) = worktree::remove_worktree(&path, wt_path).await {
+                log::warn!("Failed to remove worktree: {}", e);
+            }
+        }
 
         // Clean up execution entry
         let mut executions = manager_clone.executions.lock().await;
@@ -627,6 +658,23 @@ pub async fn reject_flow_step(
     sender
         .send(false)
         .map_err(|_| "Failed to send rejection".to_string())
+}
+
+// Settings commands
+
+#[tauri::command]
+pub async fn get_settings(
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<Settings, String> {
+    store.get()
+}
+
+#[tauri::command]
+pub async fn update_settings(
+    settings: Settings,
+    store: tauri::State<'_, SettingsStore>,
+) -> Result<Settings, String> {
+    store.update(settings)
 }
 
 #[cfg(test)]
