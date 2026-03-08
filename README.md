@@ -1,73 +1,53 @@
-# React + TypeScript + Vite
+# Tsugi
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+ローカルの Claude Code / Codex CLI セッションをGUIで操作・自動化するデスクトップアプリ。
 
-Currently, two official plugins are available:
+## 主な機能
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **セッション管理** - 複数のプロジェクトに対して Claude Code / Codex セッションを同時起動・操作
+- **プロンプトキュー** - 複数プロンプトをキューに登録し順次自動実行
+- **実行制御** - 手動/自動モード切替、一時停止、スキップ、リトライ、タイムアウト
+- **フロー** - プロンプトチェーンを名前付きフローとして保存・再利用（JSON/YAML）
+- **条件分岐・ループ** - 出力に応じた分岐、条件ループ、バリデーション、承認ゲート
+- **モニタリング** - ツール使用の可視化、トークン使用量・コスト見積もり
+- **履歴** - SQLite による実行ログの永続化、検索・再実行
+- **Git worktree** - フロー実行時に隔離された作業環境を自動作成
+- **通知** - フロー完了・失敗・承認待ちのシステム通知
+- **設定** - デフォルト CLI、実行モード、タイムアウト、キーボードショートカット
 
-## React Compiler
+## 技術スタック
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Frontend**: React 19 + TypeScript + Vite
+- **Backend**: Rust (Tauri v2)
+- **データベース**: SQLite (rusqlite)
+- **パッケージマネージャ**: pnpm
 
-## Expanding the ESLint configuration
+## 開発
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+```bash
+# 依存インストール
+pnpm install
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# 開発サーバー起動
+pnpm tauri dev
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+# ビルド
+pnpm tauri build
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# テスト
+pnpm test                        # フロントエンド
+cd src-tauri && cargo test       # バックエンド
+
+# Lint
+pnpm lint                        # ESLint
+cd src-tauri && cargo clippy     # Clippy
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## リリース
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+タグを push すると GitHub Actions で macOS (Apple Silicon)・Linux・Windows 向けにビルドされ、GitHub Release に添付されます。
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git tag v0.9.0
+git push origin v0.9.0
 ```
