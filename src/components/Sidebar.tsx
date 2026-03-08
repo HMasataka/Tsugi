@@ -9,7 +9,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { icon: "\u25CB", label: "Sessions", pageId: "sessions", disabled: false },
-  { icon: "\u25C7", label: "Flows", pageId: null, disabled: true },
+  { icon: "\u25C7", label: "Flows", pageId: "flows", disabled: false },
   { icon: "\u2630", label: "History", pageId: "history", disabled: false },
   { icon: "\u25A1", label: "Projects", pageId: "projects", disabled: false },
   { icon: "\u2699", label: "Settings", pageId: null, disabled: true },

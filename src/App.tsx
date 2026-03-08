@@ -5,13 +5,16 @@ import { SessionView } from "./components/SessionView";
 import { SessionTabBar } from "./components/SessionTabBar";
 import { ProjectsView } from "./components/ProjectsView";
 import { HistoryView } from "./components/HistoryView";
+import { FlowsView } from "./components/FlowsView";
+import { FlowEditorView } from "./components/FlowEditorView";
 import { StatusBar } from "./components/StatusBar";
 import { useSessionManager } from "./hooks/useSessionManager";
-import type { PageId, CliType } from "./types";
+import type { PageId, CliType, Flow } from "./types";
 
 function App() {
   const [activePage, setActivePage] = useState<PageId>("sessions");
   const [showSetup, setShowSetup] = useState(false);
+  const [editingFlowId, setEditingFlowId] = useState<string | null>(null);
 
   const {
     state: managerState,
@@ -149,6 +152,31 @@ function App() {
     [startSession],
   );
 
+  const handleEditFlow = useCallback((flowId: string) => {
+    setEditingFlowId(flowId);
+  }, []);
+
+  const handleBackToFlows = useCallback(() => {
+    setEditingFlowId(null);
+  }, []);
+
+  const handleRunFlow = useCallback(
+    (flow: Flow, cwd: string, cliType: CliType) => {
+      setActivePage("sessions");
+      void startSession(cwd, cliType).then((sessionId) => {
+        if (sessionId) {
+          const items = flow.steps.map((step) => ({
+            prompt: step.prompt,
+            timeoutMs: step.timeoutSecs != null ? step.timeoutSecs * 1000 : null,
+          }));
+          addItems(sessionId, items);
+          toggleAutoRun(sessionId);
+        }
+      });
+    },
+    [startSession, addItems, toggleAutoRun],
+  );
+
   // Auto-execute queue items for the active session
   useEffect(() => {
     if (!activeId || !queueState || !sessionState) return;
@@ -210,7 +238,7 @@ function App() {
                   onSendPrompt={handleManualSend}
                   onStopSession={handleStopSession}
                   onAddItem={(prompt) => activeId && addItem(activeId, prompt)}
-                  onAddItems={(prompts) => activeId && addItems(activeId, prompts)}
+                  onAddItems={(prompts) => activeId && addItems(activeId, prompts.map((p) => ({ prompt: p, timeoutMs: null })))}
                   onRemoveItem={(id) => activeId && removeItem(activeId, id)}
                   onEditItem={(id, prompt) => activeId && editItem(activeId, id, prompt)}
                   onReorder={(from, to) => activeId && reorder(activeId, from, to)}
@@ -232,7 +260,7 @@ function App() {
                   onSendPrompt={handleManualSend}
                   onStopSession={handleStopSession}
                   onAddItem={(prompt) => addItem(activeId!, prompt)}
-                  onAddItems={(prompts) => addItems(activeId!, prompts)}
+                  onAddItems={(prompts) => addItems(activeId!, prompts.map((p) => ({ prompt: p, timeoutMs: null })))}
                   onRemoveItem={(id) => removeItem(activeId!, id)}
                   onEditItem={(id, prompt) => editItem(activeId!, id, prompt)}
                   onReorder={(from, to) => reorder(activeId!, from, to)}
@@ -252,13 +280,27 @@ function App() {
           {activePage === "projects" && (
             <ProjectsView onOpenSession={handleOpenProjectSession} />
           )}
+          {activePage === "flows" && (
+            editingFlowId ? (
+              <FlowEditorView
+                flowId={editingFlowId}
+                onBack={handleBackToFlows}
+                onRunFlow={handleRunFlow}
+              />
+            ) : (
+              <FlowsView
+                onEditFlow={handleEditFlow}
+                onRunFlow={handleRunFlow}
+              />
+            )
+          )}
           {activePage === "history" && (
             <HistoryView
               onRerun={(cwd, cliType, prompts) => {
                 setActivePage("sessions");
                 void startSession(cwd, cliType).then((sessionId) => {
                   if (sessionId) {
-                    addItems(sessionId, prompts);
+                    addItems(sessionId, prompts.map((p) => ({ prompt: p, timeoutMs: null })));
                   }
                 });
               }}
