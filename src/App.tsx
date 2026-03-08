@@ -257,6 +257,7 @@ function App() {
         status={sessionState?.status ?? null}
         cliType={sessionState?.cliType ?? null}
         sessionCount={managerState.sessions.length}
+        tokenUsage={sessionState?.tokenUsage ?? null}
       />
     </div>
   );
