@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>History - PromptRelay</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Titlebar ── -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&cir;</span>
+              <span class="nav-label">Sessions</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&diamondsuit;</span>
+              <span class="nav-label">Flows</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── Content ── -->
+      <main class="content">
+
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="content-header-left">
+            <div>
+              <div class="content-title">History</div>
+              <div class="content-subtitle">24 executions</div>
+            </div>
+          </div>
+          <div class="content-header-right">
+            <button class="btn btn-ghost">Export</button>
+          </div>
+        </div>
+
+        <!-- Search / Filter Bar -->
+        <div class="toolbar">
+          <div class="search-input" style="width: 260px;">
+            <span class="search-input-icon">&#128269;</span>
+            <input type="search" placeholder="検索...">
+          </div>
+          <div class="toolbar-separator"></div>
+          <div class="filter-tags">
+            <span class="tag active">All</span>
+            <span class="tag">Completed</span>
+            <span class="tag">Failed</span>
+            <span class="tag">Flow</span>
+            <span class="tag">Ad-hoc</span>
+          </div>
+        </div>
+
+        <!-- Content Body -->
+        <div class="content-body">
+          <div class="view">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date/Time</th>
+                    <th>Directory</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Duration</th>
+                    <th class="col-cost">Cost</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+
+                  <!-- Row 1 -->
+                  <tr>
+                    <td class="col-datetime">2025-03-08 14:32</td>
+                    <td><span class="dir-path">~/projects/api-server</span></td>
+                    <td><span class="type-flow">Code Review Pipeline</span></td>
+                    <td><span class="badge badge-completed">completed</span></td>
+                    <td>3:42</td>
+                    <td class="col-cost">&yen;18.5</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 2 -->
+                  <tr>
+                    <td class="col-datetime">2025-03-08 13:15</td>
+                    <td><span class="dir-path">~/projects/api-server</span></td>
+                    <td><span class="type-adhoc">Ad-hoc (3 prompts)</span></td>
+                    <td><span class="badge badge-completed">completed</span></td>
+                    <td>5:21</td>
+                    <td class="col-cost">&yen;24.2</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 3 (failed, expanded) -->
+                  <tr class="row-failed">
+                    <td class="col-datetime">2025-03-08 10:08</td>
+                    <td><span class="dir-path">~/projects/web-app</span></td>
+                    <td><span class="type-flow">リファクタリングフロー</span></td>
+                    <td><span class="badge badge-failed">failed</span></td>
+                    <td>1:15</td>
+                    <td class="col-cost">&yen;8.3</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 3 Expanded Detail -->
+                  <tr class="expanded-row">
+                    <td colspan="7">
+                      <div class="expanded-detail">
+                        <div class="expanded-steps">
+
+                          <div class="step-item step-completed">
+                            <div class="step-indicator">
+                              <span class="step-number">1</span>
+                              <span class="step-status-icon step-icon-success">&#10003;</span>
+                            </div>
+                            <div class="step-info">
+                              <div class="step-name">型の追加</div>
+                              <div class="step-meta">
+                                <span class="step-meta-item">tokens: 2.1k</span>
+                                <span class="step-meta-item">0:32</span>
+                              </div>
+                            </div>
+                            <span class="badge badge-completed">completed</span>
+                          </div>
+
+                          <div class="step-item step-failed">
+                            <div class="step-indicator">
+                              <span class="step-number">2</span>
+                              <span class="step-status-icon step-icon-failed">&#10007;</span>
+                            </div>
+                            <div class="step-info">
+                              <div class="step-name">リファクタリング</div>
+                              <div class="step-meta">
+                                <span class="step-meta-item">tokens: 4.5k</span>
+                                <span class="step-meta-item">0:43</span>
+                              </div>
+                              <div class="step-error">タイムアウト: 300秒を超過</div>
+                            </div>
+                            <span class="badge badge-failed">failed</span>
+                          </div>
+
+                        </div>
+                        <div class="expanded-actions">
+                          <button class="btn btn-primary btn-sm">Re-run from step 2</button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+
+                  <!-- Row 4 -->
+                  <tr>
+                    <td class="col-datetime">2025-03-07 18:45</td>
+                    <td><span class="dir-path">~/projects/api-server</span></td>
+                    <td><span class="type-flow">ドキュメント生成</span></td>
+                    <td><span class="badge badge-completed">completed</span></td>
+                    <td>2:10</td>
+                    <td class="col-cost">&yen;12.1</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 5 -->
+                  <tr>
+                    <td class="col-datetime">2025-03-07 16:20</td>
+                    <td><span class="dir-path">~/projects/cli-tool</span></td>
+                    <td><span class="type-adhoc">Ad-hoc (1 prompt)</span></td>
+                    <td><span class="badge badge-completed">completed</span></td>
+                    <td>0:45</td>
+                    <td class="col-cost">&yen;3.2</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 6 -->
+                  <tr>
+                    <td class="col-datetime">2025-03-07 14:00</td>
+                    <td><span class="dir-path">~/projects/web-app</span></td>
+                    <td><span class="type-flow">Code Review Pipeline</span></td>
+                    <td><span class="badge badge-completed">completed</span></td>
+                    <td>4:05</td>
+                    <td class="col-cost">&yen;21.0</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 7 (failed) -->
+                  <tr class="row-failed">
+                    <td class="col-datetime">2025-03-06 11:30</td>
+                    <td><span class="dir-path">~/projects/api-server</span></td>
+                    <td><span class="type-adhoc">Ad-hoc (5 prompts)</span></td>
+                    <td><span class="badge badge-failed">failed</span></td>
+                    <td>6:32</td>
+                    <td class="col-cost">&yen;31.5</td>
+                    <td class="col-actions">
+                      <button class="btn btn-ghost btn-sm">Re-run</button>
+                      <button class="btn btn-ghost btn-sm">Detail</button>
+                    </td>
+                  </tr>
+
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ── Status Bar ── -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          Connected &middot; Claude Code
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="status-item">v0.1.0</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

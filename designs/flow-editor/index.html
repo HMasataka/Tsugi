@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptRelay - Flow Editor</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- Titlebar -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+
+      <!-- Sidebar -->
+      <nav class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <div class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9678;</span>
+              <span class="nav-label">Sessions</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">&#9671;</span>
+              <span class="nav-label">Flows</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </div>
+      </nav>
+
+      <!-- Content -->
+      <main class="content">
+
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="content-header-left">
+            <a class="back-link" href="#">&#8592; Flows</a>
+            <h1 class="content-title">Code Review Pipeline</h1>
+          </div>
+          <div class="content-header-right">
+            <button class="btn btn-danger">Delete</button>
+            <button class="btn">Save</button>
+            <button class="btn btn-primary">Run</button>
+          </div>
+        </div>
+
+        <!-- Split Pane Layout -->
+        <div class="split-horizontal">
+
+          <!-- Left Panel: Step List -->
+          <div class="pane step-list-pane">
+            <div class="pane-header">
+              <span class="pane-title">Steps</span>
+            </div>
+            <div class="step-toolbar">
+              <button class="btn btn-sm">+ Step</button>
+              <button class="btn btn-sm">&#9282; Branch</button>
+              <button class="btn btn-sm">&#8635; Loop</button>
+            </div>
+            <div class="pane-body step-list-body">
+
+              <div class="step-tree">
+
+                <!-- Step 1: Selected -->
+                <div class="step-item step-type-prompt selected">
+                  <div class="step-connector">
+                    <div class="step-dot"></div>
+                    <div class="step-line"></div>
+                  </div>
+                  <div class="step-card">
+                    <div class="step-card-header">
+                      <span class="step-number">1</span>
+                      <span class="step-label">Step:</span>
+                      <span class="step-name">&#12467;&#12540;&#12489;&#12524;&#12499;&#12517;&#12540;</span>
+                    </div>
+                    <div class="step-preview">&#23550;&#35937;&#12501;&#12449;&#12452;&#12523;&#12398;&#12467;&#12540;&#12489;&#12434;&#12524;&#12499;&#12517;&#12540;&#12375;&#12390;...</div>
+                  </div>
+                </div>
+
+                <!-- Step 2: Branch -->
+                <div class="step-item step-type-branch">
+                  <div class="step-connector">
+                    <div class="step-dot"></div>
+                    <div class="step-line step-line-branch"></div>
+                  </div>
+                  <div class="step-card">
+                    <div class="step-card-header">
+                      <span class="step-number">2</span>
+                      <span class="step-label">Branch:</span>
+                      <span class="step-name">&#12486;&#12473;&#12488;&#21028;&#23450;</span>
+                      <span class="step-type-icon">&#9282;</span>
+                    </div>
+                    <div class="step-preview">&#21028;&#23450;&#12503;&#12525;&#12531;&#12503;&#12488;: &#12486;&#12473;&#12488;&#12364;&#36890;&#12387;&#12390;&#12356;&#12427;&#12363;&#30906;&#35469;</div>
+
+                    <!-- Branch children -->
+                    <div class="branch-children">
+                      <!-- Yes branch -->
+                      <div class="branch-arm">
+                        <div class="branch-label branch-label-yes">Yes &#8594; Step 3</div>
+                        <div class="step-item step-type-prompt branch-child">
+                          <div class="step-connector">
+                            <div class="step-dot dot-sm"></div>
+                            <div class="step-line"></div>
+                          </div>
+                          <div class="step-card">
+                            <div class="step-card-header">
+                              <span class="step-number">3</span>
+                              <span class="step-label">Step:</span>
+                              <span class="step-name">&#12486;&#12473;&#12488;&#29983;&#25104;</span>
+                            </div>
+                            <div class="step-preview">&#12524;&#12499;&#12517;&#12540;&#32080;&#26524;&#12395;&#22522;&#12389;&#12356;&#12390;&#12486;&#12473;&#12488;&#12434;&#29983;&#25104;...</div>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- No branch -->
+                      <div class="branch-arm">
+                        <div class="branch-label branch-label-no">No &#8594; Step 4</div>
+                        <div class="step-item step-type-prompt branch-child">
+                          <div class="step-connector">
+                            <div class="step-dot dot-sm"></div>
+                          </div>
+                          <div class="step-card">
+                            <div class="step-card-header">
+                              <span class="step-number">4</span>
+                              <span class="step-label">Step:</span>
+                              <span class="step-name">&#20462;&#27491;&#20381;&#38972;</span>
+                            </div>
+                            <div class="step-preview">&#12486;&#12473;&#12488;&#12364;&#22833;&#25943;&#12375;&#12390;&#12356;&#12427;&#12383;&#12417;&#20462;&#27491;...</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Step 5: Loop -->
+                <div class="step-item step-type-loop">
+                  <div class="step-connector">
+                    <div class="step-dot"></div>
+                  </div>
+                  <div class="step-card">
+                    <div class="step-card-header">
+                      <span class="step-number">5</span>
+                      <span class="step-label">Loop:</span>
+                      <span class="step-name">&#26908;&#35388;&#12523;&#12540;&#12503;</span>
+                      <span class="step-type-icon">&#8635;</span>
+                    </div>
+                    <div class="step-preview">&#26465;&#20214;: &#12486;&#12473;&#12488;&#12364;&#20840;&#12390;&#36890;&#12427;&#12414;&#12391; (&#26368;&#22823;3&#22238;)</div>
+                    <div class="loop-target">&#8593; Step 1 &#12395;&#25147;&#12427;</div>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+          <!-- Resize Handle -->
+          <div class="resize-handle"></div>
+
+          <!-- Right Panel: Step Detail -->
+          <div class="pane step-detail-pane">
+            <div class="pane-header">
+              <span class="pane-title">Step Detail</span>
+              <span class="badge badge-pending">&#12467;&#12540;&#12489;&#12524;&#12499;&#12517;&#12540;</span>
+            </div>
+            <div class="pane-body step-detail-body">
+              <div class="detail-form">
+
+                <div class="form-group">
+                  <label class="form-label">Name</label>
+                  <input type="text" value="&#12467;&#12540;&#12489;&#12524;&#12499;&#12517;&#12540;">
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Prompt</label>
+                  <textarea rows="8">&#23550;&#35937;&#12501;&#12449;&#12452;&#12523;&#12398;&#12467;&#12540;&#12489;&#12434;&#12524;&#12499;&#12517;&#12540;&#12375;&#12390;&#12367;&#12384;&#12373;&#12356;&#12290;
+
+&#20197;&#19979;&#12398;&#35251;&#28857;&#12391;&#30906;&#35469;&#65306;
+- &#12467;&#12540;&#12489;&#12398;&#21697;&#36074;&#12392;&#21487;&#35501;&#24615;
+- &#12496;&#12464;&#12398;&#21487;&#33021;&#24615;
+- &#12497;&#12501;&#12457;&#12540;&#12510;&#12531;&#12473;&#12398;&#21839;&#38988;</textarea>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Timeout</label>
+                    <div class="timeout-input-wrap">
+                      <input type="number" value="300">
+                      <span class="input-suffix">seconds</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label">Approval Gate</label>
+                  <div class="toggle">
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                    <span class="toggle-label">&#23455;&#34892;&#21069;&#12395;&#12518;&#12540;&#12470;&#12540;&#25215;&#35469;&#12434;&#35201;&#27714;</span>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          <span>Connected &#183; Claude Code</span>
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <span class="status-item">v0.1.0</span>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

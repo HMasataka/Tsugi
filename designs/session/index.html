@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PromptRelay — Session</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Titlebar ── -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ── -->
+      <div class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item active">
+              <span class="nav-icon">&cir;</span>
+              <span class="nav-label">Sessions</span>
+              <span class="nav-badge accent">3</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">&diamondsuit;</span>
+              <span class="nav-label">Flows</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </div>
+
+      <!-- ── Content Area ── -->
+      <div class="content">
+
+        <!-- ── Session Tabs ── -->
+        <div class="tab-bar session-tab-bar">
+          <div class="tab session-tab active">
+            <span class="session-dot session-dot--active"></span>
+            <span class="session-tab-path">~/projects/api-server</span>
+            <span class="session-tab-close">&times;</span>
+          </div>
+          <div class="tab session-tab">
+            <span class="session-dot session-dot--running"></span>
+            <span class="session-tab-path">~/projects/web-app</span>
+            <span class="session-tab-close">&times;</span>
+          </div>
+          <div class="tab session-tab session-tab-new">
+            <span>+</span>
+          </div>
+        </div>
+
+        <!-- ── Split: Output + Queue ── -->
+        <div class="session-split">
+
+          <!-- ── Left: Output Viewer ── -->
+          <div class="output-panel">
+
+            <!-- Session Header -->
+            <div class="session-header">
+              <div class="session-header-left">
+                <span class="session-path">~/projects/api-server</span>
+                <span class="tag session-cli-tag">Claude Code</span>
+                <span class="session-timer">12:34</span>
+              </div>
+              <div class="session-header-right">
+                <span class="badge badge-running">&#9679; 実行中</span>
+              </div>
+            </div>
+
+            <!-- Output Stream -->
+            <div class="output-stream">
+
+              <!-- Tool Event: Reading -->
+              <div class="tool-event">
+                <div class="tool-event-header">
+                  <span class="tool-event-icon">&#128269;</span>
+                  <span class="tool-event-label">Reading</span>
+                  <span class="tool-event-target">src/handlers/auth.go</span>
+                  <span class="tool-event-chevron">&#9662;</span>
+                </div>
+                <div class="tool-event-detail">
+                  <code>&gt; Reading src/handlers/auth.go...</code>
+                  <code>&gt; File read: 142 lines</code>
+                </div>
+              </div>
+
+              <!-- AI Response -->
+              <div class="output-message">
+                <p>認証ハンドラーを確認しました。セッション管理に問題があります。</p>
+              </div>
+
+              <!-- Tool Event: Editing -->
+              <div class="tool-event">
+                <div class="tool-event-header">
+                  <span class="tool-event-icon">&#9998;</span>
+                  <span class="tool-event-label">Editing</span>
+                  <span class="tool-event-target">src/handlers/auth.go</span>
+                  <span class="tool-event-chevron">&#9662;</span>
+                </div>
+                <div class="tool-event-detail">
+                  <code>&gt; Editing src/handlers/auth.go...</code>
+                  <code>&gt; Lines 45-62 replaced</code>
+                </div>
+              </div>
+
+              <!-- AI Response -->
+              <div class="output-message">
+                <p>セッションのタイムアウト処理を修正しました。</p>
+              </div>
+
+              <!-- Tool Event: Running -->
+              <div class="tool-event tool-event--success">
+                <div class="tool-event-header">
+                  <span class="tool-event-icon">&#9654;</span>
+                  <span class="tool-event-label">Running</span>
+                  <span class="tool-event-target">go test ./handlers/...</span>
+                  <span class="tool-event-chevron">&#9662;</span>
+                </div>
+                <div class="tool-event-detail">
+                  <code>&gt; Running: go test ./handlers/...</code>
+                  <code class="text-success">&gt; Tests passed: 8/8 &#10003;</code>
+                </div>
+              </div>
+
+              <!-- AI Response -->
+              <div class="output-message">
+                <p>すべてのテストが通りました。</p>
+              </div>
+
+            </div>
+
+            <!-- Monitoring Stats Bar -->
+            <div class="output-stats-bar">
+              <div class="stat-item">
+                <span class="stat-label">Tokens</span>
+                <span class="stat-value">14.2k in / 3.8k out</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Cost</span>
+                <span class="stat-value">&yen;12.4</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- ── Resize Handle ── -->
+          <div class="resize-handle"></div>
+
+          <!-- ── Right: Queue Panel ── -->
+          <div class="queue-panel">
+
+            <!-- Queue Header -->
+            <div class="queue-header">
+              <div class="queue-header-left">
+                <span class="queue-title">Queue</span>
+                <span class="queue-count">(5)</span>
+              </div>
+              <div class="queue-header-right">
+                <div class="toggle">
+                  <span class="toggle-label">Auto</span>
+                  <div class="toggle-track on">
+                    <div class="toggle-thumb"></div>
+                  </div>
+                </div>
+                <div class="queue-controls">
+                  <button class="btn btn-icon btn-sm btn-ghost queue-btn-active" title="Pause">&#9646;&#9646;</button>
+                  <button class="btn btn-icon btn-sm btn-ghost" title="Stop">&#9632;</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Queue Items -->
+            <div class="queue-items">
+
+              <!-- Item 1: Completed -->
+              <div class="queue-item queue-item--completed">
+                <div class="queue-item-status">
+                  <span class="queue-status-icon queue-status-icon--completed">&#10003;</span>
+                </div>
+                <div class="queue-item-content">
+                  <span class="queue-item-text">認証ハンドラーのセッション管理を修正</span>
+                </div>
+              </div>
+
+              <!-- Item 2: Completed -->
+              <div class="queue-item queue-item--completed">
+                <div class="queue-item-status">
+                  <span class="queue-status-icon queue-status-icon--completed">&#10003;</span>
+                </div>
+                <div class="queue-item-content">
+                  <span class="queue-item-text">修正後のテストを実行して確認</span>
+                </div>
+              </div>
+
+              <!-- Item 3: Running -->
+              <div class="queue-item queue-item--running">
+                <div class="queue-item-status">
+                  <span class="spinner spinner--amber"></span>
+                </div>
+                <div class="queue-item-content">
+                  <span class="queue-item-text">エラーハンドリングを追加</span>
+                </div>
+              </div>
+
+              <!-- Item 4: Pending -->
+              <div class="queue-item queue-item--pending">
+                <div class="queue-item-status">
+                  <span class="queue-status-icon queue-status-icon--pending">&#9675;</span>
+                </div>
+                <div class="queue-item-content">
+                  <span class="queue-item-text">APIドキュメントを更新</span>
+                </div>
+                <div class="queue-item-drag" title="Drag to reorder">&#10495;</div>
+              </div>
+
+              <!-- Item 5: Pending -->
+              <div class="queue-item queue-item--pending">
+                <div class="queue-item-status">
+                  <span class="queue-status-icon queue-status-icon--pending">&#9675;</span>
+                </div>
+                <div class="queue-item-content">
+                  <span class="queue-item-text">不要なコメントを削除</span>
+                </div>
+                <div class="queue-item-drag" title="Drag to reorder">&#10495;</div>
+              </div>
+
+            </div>
+
+            <!-- Prompt Input Area -->
+            <div class="queue-input">
+              <textarea class="queue-textarea" rows="3" placeholder="プロンプトを入力..."></textarea>
+              <div class="queue-input-actions">
+                <button class="btn btn-primary">キューに追加</button>
+                <a class="queue-bulk-link" href="#">一括登録</a>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- ── Status Bar ── -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          <span>Connected &middot; Claude Code</span>
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="status-item">
+          <span>Auto Mode &middot; v0.1.0</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

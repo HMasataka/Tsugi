@@ -1,0 +1,323 @@
+/* PromptRelay — Flow Editor (page-specific) */
+
+/* ── Back Link ── */
+.back-link {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition-base);
+  white-space: nowrap;
+}
+
+.back-link:hover {
+  color: var(--accent);
+}
+
+/* ── Split Pane Overrides ── */
+.step-list-pane {
+  width: 350px;
+  min-width: 280px;
+  flex-shrink: 0;
+  border-right: none;
+  background: var(--bg-surface);
+}
+
+.step-detail-pane {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-app);
+}
+
+/* ── Step Toolbar ── */
+.step-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+/* ── Step List Body ── */
+.step-list-body {
+  padding: var(--space-4) var(--space-3);
+}
+
+/* ── Step Tree ── */
+.step-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* ── Step Item ── */
+.step-item {
+  display: flex;
+  align-items: stretch;
+  position: relative;
+}
+
+/* ── Step Connector (vertical line + dot) ── */
+.step-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 24px;
+  flex-shrink: 0;
+  position: relative;
+  padding-top: 14px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: var(--bg-elevated);
+  border: 2px solid var(--text-muted);
+  flex-shrink: 0;
+  z-index: 1;
+  position: relative;
+}
+
+.step-dot.dot-sm {
+  width: 8px;
+  height: 8px;
+}
+
+/* Connecting vertical line */
+.step-line {
+  width: 2px;
+  flex: 1;
+  background: var(--border-default);
+  margin-top: 2px;
+}
+
+/* Color-coded dots per type */
+.step-type-prompt .step-dot {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+}
+
+.step-type-prompt.selected .step-dot {
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+.step-type-branch .step-dot {
+  border-color: var(--status-running);
+  background: var(--status-running-bg);
+}
+
+.step-type-loop .step-dot {
+  border-color: var(--status-success);
+  background: var(--status-success-bg);
+}
+
+/* ── Step Card ── */
+.step-card {
+  flex: 1;
+  min-width: 0;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  margin: var(--space-2) 0 var(--space-2) var(--space-2);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.step-card:hover {
+  border-color: var(--border-strong);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Left border color coding */
+.step-type-prompt .step-card {
+  border-left: 3px solid var(--accent);
+}
+
+.step-type-branch .step-card {
+  border-left: 3px solid var(--status-running);
+}
+
+.step-type-loop .step-card {
+  border-left: 3px solid var(--status-success);
+}
+
+/* Selected step */
+.step-item.selected .step-card {
+  background: var(--accent-muted);
+  border-color: var(--accent);
+  border-left: 3px solid var(--accent);
+  box-shadow: 0 0 12px var(--accent-glow);
+}
+
+/* ── Step Card Header ── */
+.step-card-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-1);
+}
+
+.step-number {
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.step-item.selected .step-number {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.step-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.step-name {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.step-type-icon {
+  margin-left: auto;
+  font-size: var(--font-size-md);
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+/* ── Step Preview ── */
+.step-preview {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  line-height: 1.4;
+}
+
+/* ── Branch Children ── */
+.branch-children {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.branch-arm {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border-default);
+  margin-left: var(--space-1);
+}
+
+.branch-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+  margin-bottom: var(--space-2);
+}
+
+.branch-label-yes {
+  background: var(--status-success-bg);
+  color: var(--status-success);
+}
+
+.branch-label-no {
+  background: var(--status-failed-bg);
+  color: var(--status-failed);
+}
+
+.branch-child {
+  margin-left: 0;
+}
+
+.branch-child .step-connector {
+  width: 18px;
+  padding-top: 10px;
+}
+
+.branch-child .step-card {
+  margin: 0 0 0 var(--space-1);
+  padding: var(--space-2);
+}
+
+.branch-child .step-card-header {
+  margin-bottom: 2px;
+}
+
+/* ── Loop Target ── */
+.loop-target {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  color: var(--status-success);
+  background: var(--status-success-bg);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  display: inline-block;
+}
+
+/* ── Step Detail Panel ── */
+.step-detail-body {
+  padding: var(--space-6);
+}
+
+.detail-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  max-width: 640px;
+}
+
+/* ── Timeout Input ── */
+.timeout-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.timeout-input-wrap input[type="number"] {
+  width: 120px;
+}
+
+.input-suffix {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Hover States for Interactive Elements ── */
+.step-toolbar .btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.toggle:hover .toggle-track {
+  border-color: var(--border-strong);
+}
+
+.toggle:hover .toggle-track.on {
+  border-color: var(--accent-hover);
+  background: var(--accent-hover);
+}

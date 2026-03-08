@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - PromptRelay</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Titlebar ── -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&cir;</span>
+              <span class="nav-label">Sessions</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&diamondsuit;</span>
+              <span class="nav-label">Flows</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── Content ── -->
+      <main class="content">
+
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="content-header-left">
+            <div>
+              <div class="content-title">Settings</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab Bar -->
+        <div class="tab-bar">
+          <div class="tab active">Defaults</div>
+          <div class="tab">Keyboard Shortcuts</div>
+        </div>
+
+        <!-- Content Body -->
+        <div class="content-body">
+          <div class="settings-form">
+
+            <!-- Section: CLI Tool -->
+            <div class="settings-section">
+              <div class="settings-section-header">CLI Tool</div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Default CLI Tool</div>
+                </div>
+                <div class="settings-item-control">
+                  <select>
+                    <option selected>Claude Code</option>
+                    <option>Codex</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Execution -->
+            <div class="settings-section">
+              <div class="settings-section-header">Execution</div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Default Execution Mode</div>
+                </div>
+                <div class="settings-item-control">
+                  <select>
+                    <option selected>Auto</option>
+                    <option>Manual</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Default Timeout</div>
+                </div>
+                <div class="settings-item-control settings-item-control--with-unit">
+                  <input type="number" value="300">
+                  <span class="settings-unit">seconds</span>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Auto-retry on failure</div>
+                </div>
+                <div class="settings-item-control">
+                  <div class="toggle">
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Notifications -->
+            <div class="settings-section">
+              <div class="settings-section-header">Notifications</div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Completion notification</div>
+                </div>
+                <div class="settings-item-control">
+                  <div class="toggle">
+                    <div class="toggle-track on">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Error notification</div>
+                </div>
+                <div class="settings-item-control">
+                  <div class="toggle">
+                    <div class="toggle-track on">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Approval/Question notification</div>
+                </div>
+                <div class="settings-item-control">
+                  <div class="toggle">
+                    <div class="toggle-track on">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Section: Git -->
+            <div class="settings-section">
+              <div class="settings-section-header">Git</div>
+
+              <div class="settings-item">
+                <div class="settings-item-info">
+                  <div class="settings-item-label">Auto worktree for flows</div>
+                  <div class="settings-item-hint">フロー実行時に git worktree で隔離環境を自動作成</div>
+                </div>
+                <div class="settings-item-control">
+                  <div class="toggle">
+                    <div class="toggle-track">
+                      <div class="toggle-thumb"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Save Button -->
+            <div class="settings-actions">
+              <button class="btn btn-primary">Save</button>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ── Status Bar ── -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          Connected &middot; Claude Code
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="status-item">v0.1.0</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

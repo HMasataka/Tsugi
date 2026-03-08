@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flows - PromptRelay</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Titlebar ── -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&cir;</span>
+              <span class="nav-label">Sessions</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">&diamondsuit;</span>
+              <span class="nav-label">Flows</span>
+              <span class="nav-badge accent">3</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── Content ── -->
+      <main class="content">
+
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="content-header-left">
+            <div>
+              <div class="content-title">Flows</div>
+              <div class="content-subtitle">3 flows</div>
+            </div>
+          </div>
+          <div class="content-header-right">
+            <button class="btn btn-ghost">Import</button>
+            <button class="btn btn-primary">+ New Flow</button>
+          </div>
+        </div>
+
+        <!-- Content Body -->
+        <div class="content-body">
+          <div class="view">
+            <div class="flow-grid">
+
+              <!-- Card 1: Code Review Pipeline -->
+              <div class="card flow-card">
+                <div class="card-body">
+                  <div class="flow-name">Code Review Pipeline</div>
+                  <div class="flow-description">
+                    コードレビュー→テスト判定→テスト生成の自動パイプライン
+                  </div>
+                  <div class="flow-meta">
+                    <span class="flow-meta-item">
+                      <span class="flow-meta-icon flow-meta-icon--steps">&#9654;</span>
+                      4 steps
+                    </span>
+                    <span class="flow-meta-item">
+                      <span class="flow-meta-icon flow-meta-icon--branch">&#9095;</span>
+                      1 branch
+                    </span>
+                  </div>
+                  <div class="flow-last-used">2時間前</div>
+                </div>
+                <div class="card-footer">
+                  <div class="flow-actions-left">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                    <button class="btn btn-ghost btn-sm">Export</button>
+                  </div>
+                  <button class="btn btn-primary btn-sm">Run</button>
+                </div>
+              </div>
+
+              <!-- Card 2: Refactoring Flow -->
+              <div class="card flow-card">
+                <div class="card-body">
+                  <div class="flow-name">リファクタリングフロー</div>
+                  <div class="flow-description">
+                    型の追加→リファクタ→テスト→検証ループ
+                  </div>
+                  <div class="flow-meta">
+                    <span class="flow-meta-item">
+                      <span class="flow-meta-icon flow-meta-icon--steps">&#9654;</span>
+                      5 steps
+                    </span>
+                    <span class="flow-meta-item">
+                      <span class="flow-meta-icon flow-meta-icon--loop">&#8634;</span>
+                      1 loop
+                    </span>
+                  </div>
+                  <div class="flow-last-used">昨日</div>
+                </div>
+                <div class="card-footer">
+                  <div class="flow-actions-left">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                    <button class="btn btn-ghost btn-sm">Export</button>
+                  </div>
+                  <button class="btn btn-primary btn-sm">Run</button>
+                </div>
+              </div>
+
+              <!-- Card 3: Document Generation -->
+              <div class="card flow-card">
+                <div class="card-body">
+                  <div class="flow-name">ドキュメント生成</div>
+                  <div class="flow-description">
+                    READMEとAPIドキュメントの自動生成
+                  </div>
+                  <div class="flow-meta">
+                    <span class="flow-meta-item">
+                      <span class="flow-meta-icon flow-meta-icon--steps">&#9654;</span>
+                      2 steps
+                    </span>
+                  </div>
+                  <div class="flow-last-used">3日前</div>
+                </div>
+                <div class="card-footer">
+                  <div class="flow-actions-left">
+                    <button class="btn btn-ghost btn-sm">Edit</button>
+                    <button class="btn btn-ghost btn-sm">Export</button>
+                  </div>
+                  <button class="btn btn-primary btn-sm">Run</button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ── Status Bar ── -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          Connected &middot; Claude Code
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="status-item">v0.1.0</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

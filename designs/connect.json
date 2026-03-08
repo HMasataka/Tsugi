@@ -1,0 +1,13 @@
+{
+  "links": [
+    {
+      "selector": ".nav-item:not(.active) .nav-label",
+      "match": "text",
+      "mapping": {
+        "Sessions": "session",
+        "History": "history"
+      }
+    }
+  ],
+  "ignore": ["shared"]
+}

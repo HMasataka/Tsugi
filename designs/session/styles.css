@@ -1,0 +1,518 @@
+/* PromptRelay — Session Page */
+
+/* ── Session Tab Bar ── */
+.session-tab-bar {
+  padding: 0 var(--space-2);
+  gap: var(--space-1);
+  align-items: stretch;
+  background: var(--bg-sunken);
+}
+
+.session-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-mono);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+}
+
+.session-tab.active {
+  background: var(--bg-app);
+  border-bottom-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.session-tab:not(.active):hover {
+  background: var(--bg-hover);
+}
+
+.session-tab-path {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.session-tab-close {
+  font-size: var(--font-size-md);
+  color: var(--text-muted);
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  opacity: 0;
+}
+
+.session-tab:hover .session-tab-close {
+  opacity: 1;
+}
+
+.session-tab-close:hover {
+  color: var(--text-primary);
+  background: var(--bg-hover);
+}
+
+.session-tab-new {
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+}
+
+.session-tab-new:hover {
+  color: var(--accent);
+}
+
+/* ── Session Dot Indicators ── */
+.session-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.session-dot--active {
+  background: var(--status-success);
+  box-shadow: 0 0 6px rgba(52, 211, 153, 0.4);
+}
+
+.session-dot--running {
+  background: var(--status-running);
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 0 6px rgba(96, 165, 250, 0.4);
+}
+
+/* ── Session Split Layout ── */
+.session-split {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── Output Panel (Left) ── */
+.output-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--bg-app);
+}
+
+/* ── Session Header ── */
+.session-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-bottom: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.session-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.session-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.session-path {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.session-cli-tag {
+  font-size: var(--font-size-xs);
+  cursor: default;
+}
+
+.session-timer {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* ── Output Stream ── */
+.output-stream {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* ── Tool Event Blocks ── */
+.tool-event {
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  overflow: hidden;
+  transition: border-color var(--transition-base);
+}
+
+.tool-event:hover {
+  border-color: var(--border-strong);
+  border-left-color: var(--accent-hover);
+}
+
+.tool-event--success {
+  border-left-color: var(--status-success);
+}
+
+.tool-event--success:hover {
+  border-left-color: var(--status-success);
+}
+
+.tool-event-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.tool-event-header:hover {
+  background: var(--bg-hover);
+}
+
+.tool-event-icon {
+  font-size: var(--font-size-sm);
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+}
+
+.tool-event-label {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.tool-event--success .tool-event-label {
+  color: var(--status-success);
+}
+
+.tool-event-target {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+.tool-event-chevron {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  transition: transform var(--transition-base);
+}
+
+.tool-event-detail {
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.tool-event-detail code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.7;
+  display: block;
+}
+
+.tool-event-detail code.text-success {
+  color: var(--status-success);
+}
+
+/* ── Output Messages (AI text) ── */
+.output-message {
+  padding: var(--space-2) var(--space-1);
+}
+
+.output-message p {
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  line-height: 1.7;
+}
+
+/* ── Monitoring Stats Bar ── */
+.output-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-2) var(--space-5);
+  border-top: 1px solid var(--border-default);
+  background: var(--bg-surface);
+  flex-shrink: 0;
+}
+
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.stat-label {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.stat-value {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--text-secondary);
+}
+
+/* ── Queue Panel (Right) ── */
+.queue-panel {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+/* ── Queue Header ── */
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.queue-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.queue-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.queue-count {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.queue-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.queue-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.queue-btn-active {
+  color: var(--accent) !important;
+}
+
+/* ── Queue Items ── */
+.queue-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.queue-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-base);
+  cursor: pointer;
+}
+
+.queue-item:hover {
+  background: var(--bg-hover);
+}
+
+/* Completed queue items */
+.queue-item--completed {
+  opacity: 0.55;
+}
+
+.queue-item--completed:hover {
+  opacity: 0.75;
+}
+
+/* Running queue item */
+.queue-item--running {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  box-shadow: 0 0 12px rgba(232, 160, 48, 0.08), inset 0 0 12px rgba(232, 160, 48, 0.03);
+  opacity: 1;
+}
+
+.queue-item--running:hover {
+  background: rgba(232, 160, 48, 0.12);
+}
+
+/* Pending queue items */
+.queue-item--pending {
+  opacity: 0.85;
+}
+
+.queue-item--pending:hover {
+  opacity: 1;
+}
+
+/* Status icons */
+.queue-item-status {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.queue-status-icon {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.queue-status-icon--completed {
+  color: var(--status-success);
+  font-weight: 700;
+}
+
+.queue-status-icon--pending {
+  color: var(--text-muted);
+}
+
+/* Running spinner override for amber */
+.spinner--amber {
+  border-color: var(--border-default);
+  border-top-color: var(--accent);
+}
+
+/* Queue item content */
+.queue-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.queue-item-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+  display: block;
+}
+
+.queue-item--completed .queue-item-text {
+  color: var(--text-secondary);
+}
+
+/* Drag handle */
+.queue-item-drag {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  cursor: grab;
+  padding: 0 var(--space-1);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  user-select: none;
+  line-height: 1;
+}
+
+.queue-item:hover .queue-item-drag {
+  opacity: 1;
+}
+
+.queue-item-drag:hover {
+  color: var(--text-secondary);
+}
+
+/* ── Queue Input Area ── */
+.queue-input {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-default);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.queue-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  outline: none;
+  resize: none;
+  line-height: 1.6;
+  transition: border-color var(--transition-base);
+}
+
+.queue-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.queue-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.queue-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.queue-bulk-link {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--transition-base);
+}
+
+.queue-bulk-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Projects - PromptRelay</title>
+  <link rel="stylesheet" href="../shared/variables.css">
+  <link rel="stylesheet" href="../shared/shell.css">
+  <link rel="stylesheet" href="../shared/components.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app">
+
+    <!-- ── Titlebar ── -->
+    <div class="titlebar">
+      <div class="titlebar-left">
+        <div class="window-controls">
+          <span class="window-dot close"></span>
+          <span class="window-dot minimize"></span>
+          <span class="window-dot maximize"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Main Layout ── -->
+    <div class="main-layout">
+
+      <!-- ── Sidebar ── -->
+      <aside class="sidebar">
+        <div class="sidebar-header">Navigation</div>
+        <nav class="sidebar-nav">
+          <div class="nav-section">
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9678;</span>
+              <span class="nav-label">Sessions</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9671;</span>
+              <span class="nav-label">Flows</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9776;</span>
+              <span class="nav-label">History</span>
+            </a>
+            <a class="nav-item active" href="#">
+              <span class="nav-icon">&#9633;</span>
+              <span class="nav-label">Projects</span>
+            </a>
+            <a class="nav-item" href="#">
+              <span class="nav-icon">&#9881;</span>
+              <span class="nav-label">Settings</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
+
+      <!-- ── Content ── -->
+      <main class="content">
+
+        <!-- Content Header -->
+        <div class="content-header">
+          <div class="content-header-left">
+            <div>
+              <div class="content-title">Projects</div>
+              <div class="content-subtitle">3 registered</div>
+            </div>
+          </div>
+          <div class="content-header-right">
+            <button class="btn btn-primary">+ Register Project</button>
+          </div>
+        </div>
+
+        <!-- Content Body -->
+        <div class="content-body">
+          <div class="view">
+
+            <!-- ── Registered Projects Section ── -->
+            <div class="section">
+              <div class="section-label">Registered Projects</div>
+
+              <div class="project-list">
+
+                <!-- Project 1: api-server -->
+                <div class="project-card">
+                  <div class="project-info">
+                    <div class="project-name">api-server</div>
+                    <div class="project-path">~/projects/api-server</div>
+                    <div class="project-meta">
+                      <span class="cli-tag cli-tag--claude">Claude Code</span>
+                      <span class="project-time">30分前</span>
+                    </div>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-primary btn-sm">Open Session</button>
+                    <button class="btn btn-ghost btn-sm btn-remove">Remove</button>
+                  </div>
+                </div>
+
+                <!-- Project 2: web-app -->
+                <div class="project-card">
+                  <div class="project-info">
+                    <div class="project-name">web-app</div>
+                    <div class="project-path">~/projects/web-app</div>
+                    <div class="project-meta">
+                      <span class="cli-tag cli-tag--codex">Codex</span>
+                      <span class="project-time">2時間前</span>
+                    </div>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-primary btn-sm">Open Session</button>
+                    <button class="btn btn-ghost btn-sm btn-remove">Remove</button>
+                  </div>
+                </div>
+
+                <!-- Project 3: cli-tool -->
+                <div class="project-card">
+                  <div class="project-info">
+                    <div class="project-name">cli-tool</div>
+                    <div class="project-path">~/projects/cli-tool</div>
+                    <div class="project-meta">
+                      <span class="cli-tag cli-tag--claude">Claude Code</span>
+                      <span class="project-time">昨日</span>
+                    </div>
+                  </div>
+                  <div class="project-actions">
+                    <button class="btn btn-primary btn-sm">Open Session</button>
+                    <button class="btn btn-ghost btn-sm btn-remove">Remove</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ── Recent Directories Section ── -->
+            <div class="section">
+              <div class="section-label">Recent Directories</div>
+              <div class="section-subtitle">最近使用したがプロジェクト未登録のディレクトリ</div>
+
+              <div class="recent-list">
+
+                <div class="recent-item">
+                  <div class="recent-info">
+                    <span class="recent-path">~/projects/docs-site</span>
+                    <span class="recent-time">3時間前</span>
+                  </div>
+                  <button class="btn btn-ghost btn-sm">Register</button>
+                </div>
+
+                <div class="recent-item">
+                  <div class="recent-info">
+                    <span class="recent-path">~/projects/mobile-app</span>
+                    <span class="recent-time">昨日</span>
+                  </div>
+                  <button class="btn btn-ghost btn-sm">Register</button>
+                </div>
+
+                <div class="recent-item">
+                  <div class="recent-info">
+                    <span class="recent-path">~/tmp/experiment</span>
+                    <span class="recent-time">3日前</span>
+                  </div>
+                  <button class="btn btn-ghost btn-sm">Register</button>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+
+    <!-- ── Status Bar ── -->
+    <div class="statusbar">
+      <div class="statusbar-left">
+        <div class="status-item">
+          <span class="status-dot"></span>
+          Connected &middot; Claude Code
+        </div>
+      </div>
+      <div class="statusbar-right">
+        <div class="status-item">v0.1.0</div>
+      </div>
+    </div>
+
+  </div>
+</body>
+</html>

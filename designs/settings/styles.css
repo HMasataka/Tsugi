@@ -1,0 +1,89 @@
+/* PromptRelay — Settings Page */
+
+/* ── Settings Form Container ── */
+.settings-form {
+  max-width: 600px;
+}
+
+/* ── Section ── */
+.settings-section {
+  margin-bottom: var(--space-8);
+}
+
+.settings-section-header {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+}
+
+/* ── Setting Item Row ── */
+.settings-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) 0;
+  min-height: 44px;
+}
+
+.settings-item + .settings-item {
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ── Item Info (left side) ── */
+.settings-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  flex: 1;
+  min-width: 0;
+}
+
+.settings-item-label {
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-item-hint {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ── Item Control (right side) ── */
+.settings-item-control {
+  flex-shrink: 0;
+  margin-left: var(--space-6);
+}
+
+.settings-item-control select {
+  min-width: 160px;
+}
+
+.settings-item-control input[type="number"] {
+  width: 100px;
+}
+
+/* ── Number Input with Unit ── */
+.settings-item-control--with-unit {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.settings-unit {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ── Save Button Area ── */
+.settings-actions {
+  padding-top: var(--space-6);
+  border-top: 1px solid var(--border-default);
+}

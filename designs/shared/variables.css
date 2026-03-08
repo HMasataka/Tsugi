@@ -1,0 +1,100 @@
+/* PromptRelay — Design Tokens */
+
+@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* ── Colors ── */
+  --bg-app: #08090d;
+  --bg-surface: #0f1117;
+  --bg-elevated: #161921;
+  --bg-sunken: #060710;
+  --bg-hover: rgba(255, 255, 255, 0.04);
+  --bg-overlay: rgba(4, 5, 10, 0.8);
+
+  --accent: #e8a030;
+  --accent-hover: #f0b848;
+  --accent-muted: rgba(232, 160, 48, 0.10);
+  --accent-glow: rgba(232, 160, 48, 0.25);
+
+  --text-primary: #dfe1e7;
+  --text-secondary: #8890a4;
+  --text-muted: #4e5468;
+  --text-inverse: #08090d;
+
+  --border-default: #1a1e2c;
+  --border-subtle: #12151f;
+  --border-strong: #252a3a;
+
+  --status-success: #34d399;
+  --status-success-bg: rgba(52, 211, 153, 0.10);
+  --status-running: #60a5fa;
+  --status-running-bg: rgba(96, 165, 250, 0.10);
+  --status-pending: #e8a030;
+  --status-pending-bg: rgba(232, 160, 48, 0.10);
+  --status-failed: #f87171;
+  --status-failed-bg: rgba(248, 113, 113, 0.10);
+
+  /* ── Typography ── */
+  --font-sans: 'Lexend', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  --font-size-xs: 11px;
+  --font-size-sm: 12.5px;
+  --font-size-base: 13.5px;
+  --font-size-md: 15px;
+  --font-size-lg: 18px;
+  --font-size-xl: 22px;
+
+  /* ── Spacing ── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── Radii ── */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px var(--accent-glow);
+
+  /* ── Transitions ── */
+  --transition-fast: 0.1s ease;
+  --transition-base: 0.15s ease;
+  --transition-slow: 0.3s ease;
+
+  /* ── Layout ── */
+  --titlebar-height: 38px;
+  --sidebar-width: 200px;
+  --statusbar-height: 28px;
+}
+
+/* ── Reset ── */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
+  background: var(--bg-app);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  height: 100vh;
+}
