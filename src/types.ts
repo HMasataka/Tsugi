@@ -37,15 +37,18 @@ export interface ErrorData {
   message: string;
 }
 
-export type QueueItemStatus = "pending" | "running" | "completed" | "failed";
+export type QueueItemStatus = "pending" | "running" | "completed" | "failed" | "skipped";
 
 export interface QueueItem {
   id: string;
   prompt: string;
   status: QueueItemStatus;
+  timeoutMs: number | null;
 }
 
 export interface QueueState {
   items: QueueItem[];
   autoRun: boolean;
+  paused: boolean;
+  confirmingItemId: string | null;
 }

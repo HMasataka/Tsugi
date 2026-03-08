@@ -12,6 +12,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::start_session,
             commands::send_prompt,
+            commands::abort_prompt,
             commands::stop_session,
         ])
         .setup(|app| {
