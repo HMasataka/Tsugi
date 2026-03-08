@@ -1,6 +1,6 @@
 use std::path::Path;
-use tokio::process::Command;
 use std::process::Stdio;
+use tokio::process::Command;
 
 pub trait CliAdapter: Send + Sync {
     fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>) -> Command;
@@ -41,7 +41,10 @@ mod tests {
         let as_std = cmd.as_std();
 
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
-        assert_eq!(args, vec!["-p", "hello", "--output-format", "stream-json", "--verbose"]);
+        assert_eq!(
+            args,
+            vec!["-p", "hello", "--output-format", "stream-json", "--verbose"]
+        );
         assert_eq!(as_std.get_current_dir(), Some(Path::new("/tmp/test")));
     }
 
@@ -55,7 +58,15 @@ mod tests {
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
         assert_eq!(
             args,
-            vec!["-p", "next prompt", "--output-format", "stream-json", "--verbose", "-r", "sess-123"]
+            vec![
+                "-p",
+                "next prompt",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "-r",
+                "sess-123"
+            ]
         );
     }
 }

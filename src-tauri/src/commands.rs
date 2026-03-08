@@ -1,4 +1,4 @@
-use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
+use crate::cli_adapter::{ClaudeCodeAdapter, CliAdapter};
 use crate::db::Database;
 use crate::flow::{Flow, FlowStep, FlowStore};
 use crate::flow_runner::{FlowExecution, FlowExecutionEvent, FlowExecutionManager, FlowRunner};
@@ -160,15 +160,9 @@ pub async fn send_prompt(
         }
     };
 
-    let stdout = child
-        .stdout
-        .take()
-        .ok_or("Failed to capture stdout")?;
+    let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
 
-    let stderr = child
-        .stderr
-        .take()
-        .ok_or("Failed to capture stderr")?;
+    let stderr = child.stderr.take().ok_or("Failed to capture stderr")?;
 
     {
         let mut sessions = state.sessions.lock().await;
@@ -224,10 +218,7 @@ pub async fn send_prompt(
             }
         }
 
-        if on_event
-            .send(SessionEvent::Output { raw: line })
-            .is_err()
-        {
+        if on_event.send(SessionEvent::Output { raw: line }).is_err() {
             break;
         }
     }
@@ -251,7 +242,14 @@ pub async fn send_prompt(
             Some(0) => "completed",
             _ => "failed",
         };
-        if let Err(e) = history::finish_step(&db, &step_id, step_status, exit_code, input_tokens, output_tokens) {
+        if let Err(e) = history::finish_step(
+            &db,
+            &step_id,
+            step_status,
+            exit_code,
+            input_tokens,
+            output_tokens,
+        ) {
             log::warn!("Failed to finish step record: {}", e);
         }
     }
@@ -275,9 +273,7 @@ pub async fn send_prompt(
 }
 
 fn extract_session_id(json: &serde_json::Value) -> Option<String> {
-    if json.get("type")?.as_str()? == "system"
-        && json.get("subtype")?.as_str()? == "init"
-    {
+    if json.get("type")?.as_str()? == "system" && json.get("subtype")?.as_str()? == "init" {
         return json.get("session_id")?.as_str().map(|s| s.to_string());
     }
     None
@@ -285,8 +281,14 @@ fn extract_session_id(json: &serde_json::Value) -> Option<String> {
 
 fn extract_token_usage(json: &serde_json::Value) -> (i64, i64) {
     if let Some(usage) = json.get("usage") {
-        let input = usage.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
-        let output = usage.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+        let input = usage
+            .get("input_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
+        let output = usage
+            .get("output_tokens")
+            .and_then(|v| v.as_i64())
+            .unwrap_or(0);
         return (input, output);
     }
     (0, 0)
@@ -405,9 +407,7 @@ pub async fn unregister_project(
 }
 
 #[tauri::command]
-pub async fn list_projects(
-    store: tauri::State<'_, ProjectStore>,
-) -> Result<Vec<Project>, String> {
+pub async fn list_projects(store: tauri::State<'_, ProjectStore>) -> Result<Vec<Project>, String> {
     store.list_projects()
 }
 
@@ -462,24 +462,18 @@ pub async fn delete_execution(
 
 #[tauri::command]
 pub async fn write_export_file(path: String, content: String) -> Result<(), String> {
-    std::fs::write(&path, &content)
-        .map_err(|e| format!("Failed to write export file: {}", e))
+    std::fs::write(&path, &content).map_err(|e| format!("Failed to write export file: {}", e))
 }
 
 // Flow commands
 
 #[tauri::command]
-pub async fn list_flows(
-    store: tauri::State<'_, FlowStore>,
-) -> Result<Vec<Flow>, String> {
+pub async fn list_flows(store: tauri::State<'_, FlowStore>) -> Result<Vec<Flow>, String> {
     store.list()
 }
 
 #[tauri::command]
-pub async fn get_flow(
-    flow_id: String,
-    store: tauri::State<'_, FlowStore>,
-) -> Result<Flow, String> {
+pub async fn get_flow(flow_id: String, store: tauri::State<'_, FlowStore>) -> Result<Flow, String> {
     store.get(&flow_id)
 }
 
@@ -513,10 +507,7 @@ pub async fn delete_flow(
 }
 
 #[tauri::command]
-pub async fn import_flow(
-    json: String,
-    store: tauri::State<'_, FlowStore>,
-) -> Result<Flow, String> {
+pub async fn import_flow(json: String, store: tauri::State<'_, FlowStore>) -> Result<Flow, String> {
     store.import_flow(&json)
 }
 
@@ -663,9 +654,7 @@ pub async fn reject_flow_step(
 // Settings commands
 
 #[tauri::command]
-pub async fn get_settings(
-    store: tauri::State<'_, SettingsStore>,
-) -> Result<Settings, String> {
+pub async fn get_settings(store: tauri::State<'_, SettingsStore>) -> Result<Settings, String> {
     store.get()
 }
 
@@ -683,10 +672,9 @@ mod tests {
 
     #[test]
     fn extract_session_id_from_init_event() {
-        let json: serde_json::Value = serde_json::from_str(
-            r#"{"type":"system","subtype":"init","session_id":"abc-123"}"#,
-        )
-        .unwrap();
+        let json: serde_json::Value =
+            serde_json::from_str(r#"{"type":"system","subtype":"init","session_id":"abc-123"}"#)
+                .unwrap();
         assert_eq!(extract_session_id(&json), Some("abc-123".to_string()));
     }
 

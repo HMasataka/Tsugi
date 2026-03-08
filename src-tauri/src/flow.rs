@@ -205,8 +205,7 @@ impl FlowStore {
 
     pub fn export_flow(&self, id: &str) -> Result<String, String> {
         let flow = self.get(id)?;
-        serde_json::to_string_pretty(&flow)
-            .map_err(|e| format!("Failed to serialize flow: {}", e))
+        serde_json::to_string_pretty(&flow).map_err(|e| format!("Failed to serialize flow: {}", e))
     }
 }
 

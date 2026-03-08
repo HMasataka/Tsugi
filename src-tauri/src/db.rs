@@ -13,8 +13,8 @@ impl Database {
                 .map_err(|e| format!("Failed to create database directory: {}", e))?;
         }
 
-        let conn = Connection::open(&db_path)
-            .map_err(|e| format!("Failed to open database: {}", e))?;
+        let conn =
+            Connection::open(&db_path).map_err(|e| format!("Failed to open database: {}", e))?;
 
         let db = Self {
             conn: Mutex::new(conn),
@@ -108,9 +108,8 @@ mod tests {
 
         let tables: Vec<String> = db
             .with_conn(|conn| {
-                let mut stmt = conn.prepare(
-                    "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
-                )?;
+                let mut stmt = conn
+                    .prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")?;
                 let rows = stmt.query_map([], |row| row.get(0))?;
                 rows.collect()
             })

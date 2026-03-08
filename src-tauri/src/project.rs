@@ -77,7 +77,12 @@ impl ProjectStore {
         Ok(())
     }
 
-    pub fn register(&self, name: String, path: String, cli_type: CliType) -> Result<Project, String> {
+    pub fn register(
+        &self,
+        name: String,
+        path: String,
+        cli_type: CliType,
+    ) -> Result<Project, String> {
         let mut lock = self.data.lock().map_err(|e| e.to_string())?;
 
         if lock.projects.iter().any(|p| p.path == path) {
@@ -177,7 +182,11 @@ mod tests {
         let store = temp_store();
 
         let project = store
-            .register("MyProject".to_string(), "/tmp/myproject".to_string(), CliType::ClaudeCode)
+            .register(
+                "MyProject".to_string(),
+                "/tmp/myproject".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
 
         assert_eq!(project.name, "MyProject");
@@ -193,10 +202,18 @@ mod tests {
         let store = temp_store();
 
         store
-            .register("First".to_string(), "/tmp/dup".to_string(), CliType::ClaudeCode)
+            .register(
+                "First".to_string(),
+                "/tmp/dup".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
 
-        let result = store.register("Second".to_string(), "/tmp/dup".to_string(), CliType::ClaudeCode);
+        let result = store.register(
+            "Second".to_string(),
+            "/tmp/dup".to_string(),
+            CliType::ClaudeCode,
+        );
         assert!(result.is_err());
     }
 
@@ -205,7 +222,11 @@ mod tests {
         let store = temp_store();
 
         let project = store
-            .register("ToRemove".to_string(), "/tmp/remove".to_string(), CliType::ClaudeCode)
+            .register(
+                "ToRemove".to_string(),
+                "/tmp/remove".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
 
         store.unregister(&project.id).unwrap();
@@ -255,7 +276,11 @@ mod tests {
         store.record_recent_dir("/tmp/unregistered").unwrap();
 
         store
-            .register("Registered".to_string(), "/tmp/registered".to_string(), CliType::ClaudeCode)
+            .register(
+                "Registered".to_string(),
+                "/tmp/registered".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
 
         let dirs = store.list_recent_dirs().unwrap();
@@ -273,7 +298,11 @@ mod tests {
         assert_eq!(dirs.len(), 1);
 
         store
-            .register("New".to_string(), "/tmp/soon-registered".to_string(), CliType::ClaudeCode)
+            .register(
+                "New".to_string(),
+                "/tmp/soon-registered".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
 
         let dirs = store.list_recent_dirs().unwrap();
@@ -286,7 +315,11 @@ mod tests {
         let file_path = store.file_path.clone();
 
         store
-            .register("Persist".to_string(), "/tmp/persist".to_string(), CliType::ClaudeCode)
+            .register(
+                "Persist".to_string(),
+                "/tmp/persist".to_string(),
+                CliType::ClaudeCode,
+            )
             .unwrap();
         store.record_recent_dir("/tmp/recent").unwrap();
 

@@ -1,4 +1,4 @@
-use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
+use crate::cli_adapter::{ClaudeCodeAdapter, CliAdapter};
 use crate::flow::{FlowStep, FlowStepType};
 use crate::session::CliType;
 use serde::Serialize;
@@ -10,7 +10,12 @@ use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::{oneshot, Mutex};
 
 #[derive(Clone, Serialize)]
-#[serde(rename_all = "camelCase", rename_all_fields = "camelCase", tag = "event", content = "data")]
+#[serde(
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase",
+    tag = "event",
+    content = "data"
+)]
 pub enum FlowExecutionEvent {
     StepStarted {
         step_name: String,
@@ -100,13 +105,8 @@ impl FlowRunner {
         };
 
         for step in steps {
-            let result = Self::execute_step(
-                step,
-                &mut context,
-                execution_id,
-                execution_manager,
-            )
-            .await;
+            let result =
+                Self::execute_step(step, &mut context, execution_id, execution_manager).await;
 
             match result {
                 Ok(StepResult::Completed { output }) => {
@@ -119,9 +119,7 @@ impl FlowRunner {
                     return Err(error);
                 }
                 Err(e) => {
-                    let _ = on_event.send(FlowExecutionEvent::FlowFailed {
-                        error: e.clone(),
-                    });
+                    let _ = on_event.send(FlowExecutionEvent::FlowFailed { error: e.clone() });
                     return Err(e);
                 }
             }
@@ -136,70 +134,73 @@ impl FlowRunner {
         context: &'a mut FlowContext,
         execution_id: &'a str,
         execution_manager: &'a Arc<FlowExecutionManager>,
-    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<StepResult, String>> + Send + 'a>> {
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<StepResult, String>> + Send + 'a>>
+    {
         Box::pin(async move {
-        let step_index = context.step_counter;
-        context.step_counter += 1;
+            let step_index = context.step_counter;
+            context.step_counter += 1;
 
-        let step_type_str = match step.step_type {
-            FlowStepType::Prompt => "prompt",
-            FlowStepType::Condition => "condition",
-            FlowStepType::Loop => "loop",
-            FlowStepType::Validation => "validation",
-            FlowStepType::Approval => "approval",
-        };
+            let step_type_str = match step.step_type {
+                FlowStepType::Prompt => "prompt",
+                FlowStepType::Condition => "condition",
+                FlowStepType::Loop => "loop",
+                FlowStepType::Validation => "validation",
+                FlowStepType::Approval => "approval",
+            };
 
-        let _ = context.on_event.send(FlowExecutionEvent::StepStarted {
-            step_name: step.name.clone(),
-            step_type: step_type_str.to_string(),
-            step_index,
-        });
+            let _ = context.on_event.send(FlowExecutionEvent::StepStarted {
+                step_name: step.name.clone(),
+                step_type: step_type_str.to_string(),
+                step_index,
+            });
 
-        let result = match step.step_type {
-            FlowStepType::Prompt => Self::execute_prompt_step(step, context).await,
-            FlowStepType::Approval => {
-                Self::execute_approval_step(
-                    step,
-                    context,
-                    step_index,
-                    execution_id,
-                    execution_manager,
-                )
-                .await
-            }
-            FlowStepType::Condition => {
-                Self::execute_condition_step(step, context, execution_id, execution_manager).await
-            }
-            FlowStepType::Loop => {
-                Self::execute_loop_step(step, context, execution_id, execution_manager).await
-            }
-            FlowStepType::Validation => {
-                Self::execute_validation_step(step, context, execution_id, execution_manager).await
-            }
-        };
+            let result = match step.step_type {
+                FlowStepType::Prompt => Self::execute_prompt_step(step, context).await,
+                FlowStepType::Approval => {
+                    Self::execute_approval_step(
+                        step,
+                        context,
+                        step_index,
+                        execution_id,
+                        execution_manager,
+                    )
+                    .await
+                }
+                FlowStepType::Condition => {
+                    Self::execute_condition_step(step, context, execution_id, execution_manager)
+                        .await
+                }
+                FlowStepType::Loop => {
+                    Self::execute_loop_step(step, context, execution_id, execution_manager).await
+                }
+                FlowStepType::Validation => {
+                    Self::execute_validation_step(step, context, execution_id, execution_manager)
+                        .await
+                }
+            };
 
-        match &result {
-            Ok(StepResult::Completed { output }) => {
-                let _ = context.on_event.send(FlowExecutionEvent::StepCompleted {
-                    step_name: step.name.clone(),
-                    output: output.clone(),
-                });
+            match &result {
+                Ok(StepResult::Completed { output }) => {
+                    let _ = context.on_event.send(FlowExecutionEvent::StepCompleted {
+                        step_name: step.name.clone(),
+                        output: output.clone(),
+                    });
+                }
+                Ok(StepResult::Failed { error }) => {
+                    let _ = context.on_event.send(FlowExecutionEvent::StepFailed {
+                        step_name: step.name.clone(),
+                        error: error.clone(),
+                    });
+                }
+                Err(e) => {
+                    let _ = context.on_event.send(FlowExecutionEvent::StepFailed {
+                        step_name: step.name.clone(),
+                        error: e.clone(),
+                    });
+                }
             }
-            Ok(StepResult::Failed { error }) => {
-                let _ = context.on_event.send(FlowExecutionEvent::StepFailed {
-                    step_name: step.name.clone(),
-                    error: error.clone(),
-                });
-            }
-            Err(e) => {
-                let _ = context.on_event.send(FlowExecutionEvent::StepFailed {
-                    step_name: step.name.clone(),
-                    error: e.clone(),
-                });
-            }
-        }
 
-        result
+            result
         })
     }
 
@@ -243,7 +244,9 @@ impl FlowRunner {
             step_index,
         });
 
-        let approved = rx.await.map_err(|_| "Approval channel closed".to_string())?;
+        let approved = rx
+            .await
+            .map_err(|_| "Approval channel closed".to_string())?;
 
         if approved {
             Ok(StepResult::Completed {
@@ -267,13 +270,20 @@ impl FlowRunner {
             .as_deref()
             .ok_or("Condition step missing conditionPrompt")?;
 
-        let result =
-            Self::evaluate_condition(condition_prompt, &context.last_output, &context.cwd, &context.cli_type).await?;
+        let result = Self::evaluate_condition(
+            condition_prompt,
+            &context.last_output,
+            &context.cwd,
+            &context.cli_type,
+        )
+        .await?;
 
-        let _ = context.on_event.send(FlowExecutionEvent::ConditionEvaluated {
-            step_name: step.name.clone(),
-            result,
-        });
+        let _ = context
+            .on_event
+            .send(FlowExecutionEvent::ConditionEvaluated {
+                step_name: step.name.clone(),
+                result,
+            });
 
         let branch_steps = if result {
             step.then_steps.as_deref()
@@ -283,13 +293,8 @@ impl FlowRunner {
 
         if let Some(steps) = branch_steps {
             for sub_step in steps {
-                let sub_result = Self::execute_step(
-                    sub_step,
-                    context,
-                    execution_id,
-                    execution_manager,
-                )
-                .await?;
+                let sub_result =
+                    Self::execute_step(sub_step, context, execution_id, execution_manager).await?;
                 match sub_result {
                     StepResult::Completed { output } => {
                         context.last_output = output;
@@ -333,9 +338,13 @@ impl FlowRunner {
 
             context.last_output = output;
 
-            let should_continue =
-                Self::evaluate_condition(loop_condition, &context.last_output, &context.cwd, &context.cli_type)
-                    .await?;
+            let should_continue = Self::evaluate_condition(
+                loop_condition,
+                &context.last_output,
+                &context.cwd,
+                &context.cli_type,
+            )
+            .await?;
 
             if !should_continue {
                 break;
@@ -393,13 +402,9 @@ impl FlowRunner {
                 // Exhausted retries, run on_fail_steps if defined
                 if let Some(fail_steps) = &step.on_fail_steps {
                     for sub_step in fail_steps {
-                        let sub_result = Self::execute_step(
-                            sub_step,
-                            context,
-                            execution_id,
-                            execution_manager,
-                        )
-                        .await?;
+                        let sub_result =
+                            Self::execute_step(sub_step, context, execution_id, execution_manager)
+                                .await?;
                         match sub_result {
                             StepResult::Completed { output } => {
                                 context.last_output = output;
@@ -457,10 +462,7 @@ impl FlowRunner {
             .spawn()
             .map_err(|e| format!("Failed to spawn process: {}", e))?;
 
-        let stdout = child
-            .stdout
-            .take()
-            .ok_or("Failed to capture stdout")?;
+        let stdout = child.stdout.take().ok_or("Failed to capture stdout")?;
 
         let mut reader = BufReader::new(stdout).lines();
         let mut output_text = String::new();
@@ -479,10 +481,7 @@ impl FlowRunner {
             .map_err(|e| format!("Failed to wait for process: {}", e))?;
 
         if !status.success() {
-            return Err(format!(
-                "Process exited with code: {:?}",
-                status.code()
-            ));
+            return Err(format!("Process exited with code: {:?}", status.code()));
         }
 
         Ok(output_text)
@@ -632,10 +631,7 @@ mod tests {
     fn extract_output_text_from_result_message() {
         let json: serde_json::Value =
             serde_json::from_str(r#"{"type":"result","result":"final output"}"#).unwrap();
-        assert_eq!(
-            extract_output_text(&json),
-            Some("final output".to_string())
-        );
+        assert_eq!(extract_output_text(&json), Some("final output".to_string()));
     }
 
     #[test]
@@ -669,16 +665,11 @@ mod tests {
         let (tx, rx) = oneshot::channel();
         {
             let mut executions = manager.executions.lock().await;
-            executions
-                .get_mut(execution_id)
-                .unwrap()
-                .approval_sender = Some(tx);
+            executions.get_mut(execution_id).unwrap().approval_sender = Some(tx);
         }
 
         // Simulate approval
-        let handle = tokio::spawn(async move {
-            rx.await.unwrap()
-        });
+        let handle = tokio::spawn(async move { rx.await.unwrap() });
 
         {
             let mut executions = manager.executions.lock().await;
@@ -710,15 +701,10 @@ mod tests {
         let (tx, rx) = oneshot::channel();
         {
             let mut executions = manager.executions.lock().await;
-            executions
-                .get_mut(execution_id)
-                .unwrap()
-                .approval_sender = Some(tx);
+            executions.get_mut(execution_id).unwrap().approval_sender = Some(tx);
         }
 
-        let handle = tokio::spawn(async move {
-            rx.await.unwrap()
-        });
+        let handle = tokio::spawn(async move { rx.await.unwrap() });
 
         {
             let mut executions = manager.executions.lock().await;

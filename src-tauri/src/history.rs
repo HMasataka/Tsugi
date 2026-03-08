@@ -177,7 +177,10 @@ pub fn append_output(db: &Database, step_id: &str, seq: i64, raw_json: &str) -> 
     })
 }
 
-pub fn list_executions(db: &Database, filter: &HistoryFilter) -> Result<Vec<ExecutionSummary>, String> {
+pub fn list_executions(
+    db: &Database,
+    filter: &HistoryFilter,
+) -> Result<Vec<ExecutionSummary>, String> {
     db.with_conn(|conn| {
         let mut sql = String::from(
             "SELECT e.id, e.cwd, e.cli_type, e.status, e.started_at, e.finished_at,
@@ -353,8 +356,7 @@ pub fn export_execution(db: &Database, execution_id: &str) -> Result<String, Str
         "steps": steps_with_outputs,
     });
 
-    serde_json::to_string_pretty(&export)
-        .map_err(|e| format!("Failed to serialize export: {}", e))
+    serde_json::to_string_pretty(&export).map_err(|e| format!("Failed to serialize export: {}", e))
 }
 
 pub fn delete_execution(db: &Database, execution_id: &str) -> Result<(), String> {
@@ -468,7 +470,13 @@ mod tests {
         create_step(&db, &sample_step("step-1", "exec-1", 1)).unwrap();
 
         append_output(&db, "step-1", 0, r#"{"type":"system","subtype":"init"}"#).unwrap();
-        append_output(&db, "step-1", 1, r#"{"type":"assistant","message":"hello"}"#).unwrap();
+        append_output(
+            &db,
+            "step-1",
+            1,
+            r#"{"type":"assistant","message":"hello"}"#,
+        )
+        .unwrap();
 
         let outputs = get_step_outputs(&db, "step-1").unwrap();
         assert_eq!(outputs.len(), 2);
@@ -480,16 +488,20 @@ mod tests {
     fn list_executions_with_no_filter() {
         let db = temp_db();
         create_execution(&db, &sample_execution("exec-1")).unwrap();
-        create_execution(&db, &Execution {
-            id: "exec-2".to_string(),
-            cwd: "/tmp/other".to_string(),
-            cli_type: "claude-code".to_string(),
-            status: "completed".to_string(),
-            started_at: 1700000001000,
-            finished_at: Some(1700000002000),
-            total_input_tokens: 200,
-            total_output_tokens: 100,
-        }).unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                id: "exec-2".to_string(),
+                cwd: "/tmp/other".to_string(),
+                cli_type: "claude-code".to_string(),
+                status: "completed".to_string(),
+                started_at: 1700000001000,
+                finished_at: Some(1700000002000),
+                total_input_tokens: 200,
+                total_output_tokens: 100,
+            },
+        )
+        .unwrap();
 
         let filter = HistoryFilter {
             cwd: None,
@@ -510,11 +522,15 @@ mod tests {
     fn list_executions_with_cwd_filter() {
         let db = temp_db();
         create_execution(&db, &sample_execution("exec-1")).unwrap();
-        create_execution(&db, &Execution {
-            id: "exec-2".to_string(),
-            cwd: "/tmp/other".to_string(),
-            ..sample_execution("exec-2")
-        }).unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                id: "exec-2".to_string(),
+                cwd: "/tmp/other".to_string(),
+                ..sample_execution("exec-2")
+            },
+        )
+        .unwrap();
 
         let filter = HistoryFilter {
             cwd: Some("other".to_string()),
@@ -536,11 +552,15 @@ mod tests {
         create_execution(&db, &sample_execution("exec-1")).unwrap();
         finish_execution(&db, "exec-1", "completed").unwrap();
 
-        create_execution(&db, &Execution {
-            id: "exec-2".to_string(),
-            status: "failed".to_string(),
-            ..sample_execution("exec-2")
-        }).unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                id: "exec-2".to_string(),
+                status: "failed".to_string(),
+                ..sample_execution("exec-2")
+            },
+        )
+        .unwrap();
 
         let filter = HistoryFilter {
             cwd: None,
@@ -560,22 +580,34 @@ mod tests {
     fn list_executions_with_keyword_filter() {
         let db = temp_db();
         create_execution(&db, &sample_execution("exec-1")).unwrap();
-        create_step(&db, &ExecutionStep {
-            prompt: "Fix the authentication bug".to_string(),
-            ..sample_step("step-1", "exec-1", 1)
-        }).unwrap();
+        create_step(
+            &db,
+            &ExecutionStep {
+                prompt: "Fix the authentication bug".to_string(),
+                ..sample_step("step-1", "exec-1", 1)
+            },
+        )
+        .unwrap();
 
-        create_execution(&db, &Execution {
-            id: "exec-2".to_string(),
-            started_at: 1700000001000,
-            ..sample_execution("exec-2")
-        }).unwrap();
-        create_step(&db, &ExecutionStep {
-            id: "step-2".to_string(),
-            execution_id: "exec-2".to_string(),
-            prompt: "Add new feature".to_string(),
-            ..sample_step("step-2", "exec-2", 1)
-        }).unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                id: "exec-2".to_string(),
+                started_at: 1700000001000,
+                ..sample_execution("exec-2")
+            },
+        )
+        .unwrap();
+        create_step(
+            &db,
+            &ExecutionStep {
+                id: "step-2".to_string(),
+                execution_id: "exec-2".to_string(),
+                prompt: "Add new feature".to_string(),
+                ..sample_step("step-2", "exec-2", 1)
+            },
+        )
+        .unwrap();
 
         let filter = HistoryFilter {
             cwd: None,
@@ -594,15 +626,23 @@ mod tests {
     #[test]
     fn list_executions_with_date_filter() {
         let db = temp_db();
-        create_execution(&db, &Execution {
-            started_at: 1700000000000,
-            ..sample_execution("exec-1")
-        }).unwrap();
-        create_execution(&db, &Execution {
-            id: "exec-2".to_string(),
-            started_at: 1700000010000,
-            ..sample_execution("exec-2")
-        }).unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                started_at: 1700000000000,
+                ..sample_execution("exec-1")
+            },
+        )
+        .unwrap();
+        create_execution(
+            &db,
+            &Execution {
+                id: "exec-2".to_string(),
+                started_at: 1700000010000,
+                ..sample_execution("exec-2")
+            },
+        )
+        .unwrap();
 
         let filter = HistoryFilter {
             cwd: None,
@@ -622,11 +662,15 @@ mod tests {
     fn list_executions_pagination() {
         let db = temp_db();
         for i in 0..5 {
-            create_execution(&db, &Execution {
-                id: format!("exec-{}", i),
-                started_at: 1700000000000 + i * 1000,
-                ..sample_execution(&format!("exec-{}", i))
-            }).unwrap();
+            create_execution(
+                &db,
+                &Execution {
+                    id: format!("exec-{}", i),
+                    started_at: 1700000000000 + i * 1000,
+                    ..sample_execution(&format!("exec-{}", i))
+                },
+            )
+            .unwrap();
         }
 
         let filter = HistoryFilter {
@@ -722,5 +766,4 @@ mod tests {
         assert_eq!(json["stepCount"], 3);
         assert_eq!(json["totalInputTokens"], 500);
     }
-
 }
