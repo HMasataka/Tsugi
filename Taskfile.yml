@@ -4,7 +4,7 @@ tasks:
   dev:
     desc: Tauri アプリを開発モードで起動
     cmds:
-      - cargo tauri dev
+      - pnpm tauri dev
 
   dev:front:
     desc: フロントエンドのみ起動（ブラウザで確認）
@@ -14,35 +14,27 @@ tasks:
   build:
     desc: プロダクションビルド（バイナリ生成）
     cmds:
-      - cargo tauri build
+      - pnpm tauri build
 
   test:
-    desc: 全テスト実行（Rust + フロントエンド）
+    desc: 全テスト実行
     cmds:
       - task: test:rust
-      - task: test:front
 
   test:rust:
     desc: Rust テスト実行
     cmds:
       - cargo test --manifest-path src-tauri/Cargo.toml
 
-  test:front:
-    desc: フロントエンドテスト実行
-    cmds:
-      - pnpm test
-
   fmt:
-    desc: 全フォーマット実行（Rust + フロントエンド）
+    desc: 全フォーマット実行
     cmds:
       - task: fmt:rust
-      - task: fmt:front
 
   fmt:check:
     desc: 全フォーマットチェック（修正なし）
     cmds:
       - task: fmt:rust:check
-      - task: fmt:front:check
 
   fmt:rust:
     desc: cargo fmt でフォーマット実行
@@ -54,25 +46,10 @@ tasks:
     cmds:
       - cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
 
-  fmt:front:
-    desc: Biome でフォーマット実行
-    cmds:
-      - pnpm biome format --write src/
-
-  fmt:front:check:
-    desc: Biome でフォーマットチェック（修正なし）
-    cmds:
-      - pnpm biome format src/
-
   lint:
-    desc: Biome でリント・フォーマットチェック
+    desc: ESLint でリントチェック
     cmds:
-      - pnpm biome check src/
-
-  lint:fix:
-    desc: Biome でリント・フォーマット自動修正
-    cmds:
-      - pnpm biome check --write src/
+      - pnpm lint
 
   clippy:
     desc: Rust の静的解析
