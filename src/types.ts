@@ -36,3 +36,16 @@ export interface ProcessExitedData {
 export interface ErrorData {
   message: string;
 }
+
+export type QueueItemStatus = "pending" | "running" | "completed" | "failed";
+
+export interface QueueItem {
+  id: string;
+  prompt: string;
+  status: QueueItemStatus;
+}
+
+export interface QueueState {
+  items: QueueItem[];
+  autoRun: boolean;
+}

@@ -1,14 +1,23 @@
 import { useState, useCallback } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { SessionState, CliType } from "../types";
+import type { SessionState, CliType, QueueState } from "../types";
 import { OutputStream } from "./OutputStream";
 import { PromptInput } from "./PromptInput";
+import { QueuePanel } from "./QueuePanel";
 
 interface SessionViewProps {
   state: SessionState;
+  queueState: QueueState;
   onStartSession: (cwd: string, cliType: CliType) => Promise<void>;
-  onSendPrompt: (prompt: string) => Promise<void>;
+  onSendPrompt: (prompt: string) => void;
   onStopSession: () => Promise<void>;
+  onAddItem: (prompt: string) => void;
+  onAddItems: (prompts: string[]) => void;
+  onRemoveItem: (id: string) => void;
+  onEditItem: (id: string, prompt: string) => void;
+  onReorder: (fromIndex: number, toIndex: number) => void;
+  onToggleAutoRun: () => void;
+  onClearCompleted: () => void;
 }
 
 function statusBadgeClass(status: SessionState["status"]): string {
@@ -23,9 +32,17 @@ function statusBadgeLabel(status: SessionState["status"]): string {
 
 export function SessionView({
   state,
+  queueState,
   onStartSession,
   onSendPrompt,
   onStopSession,
+  onAddItem,
+  onAddItems,
+  onRemoveItem,
+  onEditItem,
+  onReorder,
+  onToggleAutoRun,
+  onClearCompleted,
 }: SessionViewProps) {
   const [selectedCwd, setSelectedCwd] = useState<string | null>(null);
   const [selectedCli, setSelectedCli] = useState<CliType>("claude-code");
@@ -100,13 +117,25 @@ export function SessionView({
           </button>
         </div>
       </div>
-      <OutputStream outputs={state.outputs} />
-      <PromptInput
-        status={state.status}
-        onSend={(prompt) => {
-          void onSendPrompt(prompt);
-        }}
-      />
+      <div className="session-split">
+        <div className="output-panel">
+          <OutputStream outputs={state.outputs} />
+          <PromptInput
+            status={state.status}
+            onSend={onSendPrompt}
+          />
+        </div>
+        <QueuePanel
+          state={queueState}
+          onAddItem={onAddItem}
+          onAddItems={onAddItems}
+          onRemoveItem={onRemoveItem}
+          onEditItem={onEditItem}
+          onReorder={onReorder}
+          onToggleAutoRun={onToggleAutoRun}
+          onClearCompleted={onClearCompleted}
+        />
+      </div>
     </>
   );
 }

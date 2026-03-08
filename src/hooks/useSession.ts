@@ -106,7 +106,10 @@ export function useSession() {
   );
 
   const sendPrompt = useCallback(
-    async (prompt: string) => {
+    async (
+      prompt: string,
+      onProcessExited?: (code: number | null) => void,
+    ) => {
       dispatch({ type: "SET_RUNNING" });
 
       const onEvent = new Channel<SessionEvent>();
@@ -143,8 +146,11 @@ export function useSession() {
               },
             });
             dispatch({ type: "SET_IDLE" });
+            onProcessExited?.(data.code);
             break;
           }
+          // Rust backend always sends processExited after error events;
+          // SET_IDLE and onProcessExited are handled in the processExited case.
           case "error": {
             const data = event.data as ErrorData;
             dispatch({
@@ -174,6 +180,7 @@ export function useSession() {
           },
         });
         dispatch({ type: "SET_IDLE" });
+        onProcessExited?.(null);
       }
     },
     [],
