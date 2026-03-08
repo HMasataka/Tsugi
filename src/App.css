@@ -494,6 +494,364 @@
   50% { opacity: 0.5; }
 }
 
+/* ---- Session Split Layout ---- */
+.session-split {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ---- Output Panel (Left) ---- */
+.output-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+  background: var(--bg-app);
+}
+
+/* ---- Queue Panel (Right) ---- */
+.queue-panel {
+  width: 320px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+  border-left: 1px solid var(--border-default);
+  overflow: hidden;
+}
+
+/* ---- Queue Header ---- */
+.queue-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border-default);
+  flex-shrink: 0;
+}
+
+.queue-header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.queue-title {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.queue-count {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+.queue-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ---- Toggle Switch ---- */
+.toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+}
+
+.toggle-track {
+  width: 36px;
+  height: 20px;
+  border-radius: var(--radius-full);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-default);
+  position: relative;
+  transition: all var(--transition-base);
+}
+
+.toggle-track.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--text-secondary);
+  transition: all var(--transition-base);
+}
+
+.toggle-track.on .toggle-thumb {
+  left: 18px;
+  background: var(--text-inverse);
+}
+
+.toggle-label {
+  font-size: var(--font-size-sm);
+  color: var(--text-secondary);
+}
+
+/* ---- Queue Items ---- */
+.queue-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.queue-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  transition: all var(--transition-base);
+}
+
+.queue-item:hover {
+  background: var(--bg-hover);
+}
+
+.queue-item--completed {
+  opacity: 0.55;
+}
+
+.queue-item--completed:hover {
+  opacity: 0.75;
+}
+
+.queue-item--running {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  box-shadow: 0 0 12px rgba(232, 160, 48, 0.08), inset 0 0 12px rgba(232, 160, 48, 0.03);
+  opacity: 1;
+}
+
+.queue-item--running:hover {
+  background: rgba(232, 160, 48, 0.12);
+}
+
+.queue-item--pending {
+  opacity: 0.85;
+}
+
+.queue-item--pending:hover {
+  opacity: 1;
+}
+
+.queue-item--failed {
+  opacity: 0.7;
+}
+
+/* ---- Queue Item Status Icons ---- */
+.queue-item-status {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 1px;
+}
+
+.queue-status-icon {
+  font-size: var(--font-size-sm);
+  line-height: 1;
+}
+
+.queue-status-icon--completed {
+  color: var(--status-success);
+  font-weight: 700;
+}
+
+.queue-status-icon--pending {
+  color: var(--text-muted);
+}
+
+.queue-status-icon--failed {
+  color: var(--status-failed);
+  font-weight: 700;
+}
+
+/* ---- Spinner (amber override for queue) ---- */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border-default);
+  border-top-color: var(--accent);
+  border-radius: var(--radius-full);
+  animation: spin 0.6s linear infinite;
+}
+
+.spinner--amber {
+  border-color: var(--border-default);
+  border-top-color: var(--accent);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ---- Queue Item Content ---- */
+.queue-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.queue-item-text {
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  line-height: 1.5;
+  display: block;
+}
+
+.queue-item--completed .queue-item-text {
+  color: var(--text-secondary);
+}
+
+.queue-item-edit-input {
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-sunken);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  outline: none;
+  line-height: 1.5;
+}
+
+/* ---- Queue Item Actions (edit/delete) ---- */
+.queue-item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+}
+
+.queue-item:hover .queue-item-actions {
+  opacity: 1;
+}
+
+.queue-item-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+  padding: 0;
+}
+
+.queue-item-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* ---- Queue Item Drag Handle ---- */
+.queue-item-drag {
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: var(--font-size-md);
+  cursor: grab;
+  padding: 0 var(--space-1);
+  opacity: 0;
+  transition: opacity var(--transition-base);
+  user-select: none;
+  line-height: 1;
+}
+
+.queue-item:hover .queue-item-drag {
+  opacity: 1;
+}
+
+.queue-item-drag:hover {
+  color: var(--text-secondary);
+}
+
+/* ---- Queue Input Area ---- */
+.queue-input {
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-default);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.queue-textarea {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--text-primary);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  outline: none;
+  resize: none;
+  line-height: 1.6;
+  transition: border-color var(--transition-base);
+}
+
+.queue-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-muted);
+}
+
+.queue-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.queue-input-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.queue-bulk-link {
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+}
+
+/* ---- Button Variants for Queue ---- */
+.btn-sm {
+  padding: 3px 10px;
+  font-size: var(--font-size-xs);
+}
+
+.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
 /* ---- Scrollbar ---- */
 ::-webkit-scrollbar {
   width: 6px;
