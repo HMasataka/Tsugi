@@ -9,13 +9,21 @@ type QueueAction =
   | { type: "REORDER"; fromIndex: number; toIndex: number }
   | { type: "SET_ITEM_STATUS"; id: string; status: QueueItemStatus }
   | { type: "TOGGLE_AUTO_RUN" }
-  | { type: "CLEAR_COMPLETED" };
+  | { type: "CLEAR_COMPLETED" }
+  | { type: "PAUSE" }
+  | { type: "RESUME" }
+  | { type: "SKIP_ITEM"; id: string }
+  | { type: "RETRY_ITEM"; id: string }
+  | { type: "SET_TIMEOUT"; id: string; timeoutMs: number | null }
+  | { type: "CONFIRM_ITEM"; id: string }
+  | { type: "CLEAR_CONFIRMING" };
 
 function createQueueItem(prompt: string): QueueItem {
   return {
     id: crypto.randomUUID(),
     prompt,
     status: "pending",
+    timeoutMs: null,
   };
 }
 
@@ -70,18 +78,51 @@ function queueReducer(state: QueueState, action: QueueAction): QueueState {
         ),
       };
     case "TOGGLE_AUTO_RUN":
-      return { ...state, autoRun: !state.autoRun };
+      return { ...state, autoRun: !state.autoRun, confirmingItemId: null };
     case "CLEAR_COMPLETED":
       return {
         ...state,
         items: state.items.filter((item) => item.status !== "completed"),
       };
+    case "PAUSE":
+      return { ...state, paused: true };
+    case "RESUME":
+      return { ...state, paused: false };
+    case "SKIP_ITEM":
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.id ? { ...item, status: "skipped" as const } : item,
+        ),
+      };
+    case "RETRY_ITEM":
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.id && (item.status === "failed" || item.status === "skipped")
+            ? { ...item, status: "pending" as const }
+            : item,
+        ),
+      };
+    case "SET_TIMEOUT":
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.id === action.id ? { ...item, timeoutMs: action.timeoutMs } : item,
+        ),
+      };
+    case "CONFIRM_ITEM":
+      return { ...state, confirmingItemId: action.id };
+    case "CLEAR_CONFIRMING":
+      return { ...state, confirmingItemId: null };
   }
 }
 
 const initialState: QueueState = {
   items: [],
   autoRun: false,
+  paused: false,
+  confirmingItemId: null,
 };
 
 export function useQueue() {
@@ -122,6 +163,34 @@ export function useQueue() {
     dispatch({ type: "CLEAR_COMPLETED" });
   }, []);
 
+  const pause = useCallback(() => {
+    dispatch({ type: "PAUSE" });
+  }, []);
+
+  const resume = useCallback(() => {
+    dispatch({ type: "RESUME" });
+  }, []);
+
+  const skipItem = useCallback((id: string) => {
+    dispatch({ type: "SKIP_ITEM", id });
+  }, []);
+
+  const retryItem = useCallback((id: string) => {
+    dispatch({ type: "RETRY_ITEM", id });
+  }, []);
+
+  const setItemTimeout = useCallback((id: string, timeoutMs: number | null) => {
+    dispatch({ type: "SET_TIMEOUT", id, timeoutMs });
+  }, []);
+
+  const confirmItem = useCallback((id: string) => {
+    dispatch({ type: "CONFIRM_ITEM", id });
+  }, []);
+
+  const clearConfirming = useCallback(() => {
+    dispatch({ type: "CLEAR_CONFIRMING" });
+  }, []);
+
   return {
     state,
     addItem,
@@ -132,6 +201,13 @@ export function useQueue() {
     setItemStatus,
     toggleAutoRun,
     clearCompleted,
+    pause,
+    resume,
+    skipItem,
+    retryItem,
+    setItemTimeout,
+    confirmItem,
+    clearConfirming,
   };
 }
 

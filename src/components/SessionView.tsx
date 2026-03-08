@@ -18,6 +18,13 @@ interface SessionViewProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   onToggleAutoRun: () => void;
   onClearCompleted: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onRetryItem: (id: string) => void;
+  onAbort: () => void;
+  onSetItemTimeout: (id: string, timeoutMs: number | null) => void;
+  onConfirmExecute: (id: string) => void;
+  onConfirmSkip: (id: string) => void;
 }
 
 function statusBadgeClass(status: SessionState["status"]): string {
@@ -43,6 +50,13 @@ export function SessionView({
   onReorder,
   onToggleAutoRun,
   onClearCompleted,
+  onPause,
+  onResume,
+  onRetryItem,
+  onAbort,
+  onSetItemTimeout,
+  onConfirmExecute,
+  onConfirmSkip,
 }: SessionViewProps) {
   const [selectedCwd, setSelectedCwd] = useState<string | null>(null);
   const [selectedCli, setSelectedCli] = useState<CliType>("claude-code");
@@ -134,6 +148,13 @@ export function SessionView({
           onReorder={onReorder}
           onToggleAutoRun={onToggleAutoRun}
           onClearCompleted={onClearCompleted}
+          onPause={onPause}
+          onResume={onResume}
+          onRetryItem={onRetryItem}
+          onAbort={onAbort}
+          onSetItemTimeout={onSetItemTimeout}
+          onConfirmExecute={onConfirmExecute}
+          onConfirmSkip={onConfirmSkip}
         />
       </div>
     </>

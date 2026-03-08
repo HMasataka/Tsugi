@@ -178,4 +178,183 @@ describe("queueReducer", () => {
       expect(next.items[0].prompt).toBe("Pending");
     });
   });
+
+  describe("PAUSE", () => {
+    it("sets paused to true", () => {
+      const next = dispatch(initialState, { type: "PAUSE" });
+      expect(next.paused).toBe(true);
+    });
+  });
+
+  describe("RESUME", () => {
+    it("sets paused to false", () => {
+      const paused = dispatch(initialState, { type: "PAUSE" });
+      const next = dispatch(paused, { type: "RESUME" });
+      expect(next.paused).toBe(false);
+    });
+  });
+
+  describe("SKIP_ITEM", () => {
+    it("sets item status to skipped", () => {
+      const withItem = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "To skip",
+      });
+      const itemId = withItem.items[0].id;
+
+      const next = dispatch(withItem, { type: "SKIP_ITEM", id: itemId });
+
+      expect(next.items[0].status).toBe("skipped");
+    });
+  });
+
+  describe("RETRY_ITEM", () => {
+    it("resets failed item to pending", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Failed task",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, {
+        type: "SET_ITEM_STATUS",
+        id: itemId,
+        status: "failed",
+      });
+
+      const next = dispatch(state, { type: "RETRY_ITEM", id: itemId });
+
+      expect(next.items[0].status).toBe("pending");
+    });
+
+    it("resets skipped item to pending", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Skipped task",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, { type: "SKIP_ITEM", id: itemId });
+
+      const next = dispatch(state, { type: "RETRY_ITEM", id: itemId });
+
+      expect(next.items[0].status).toBe("pending");
+    });
+
+    it("does not change completed item", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Completed task",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, {
+        type: "SET_ITEM_STATUS",
+        id: itemId,
+        status: "completed",
+      });
+
+      const next = dispatch(state, { type: "RETRY_ITEM", id: itemId });
+
+      expect(next.items[0].status).toBe("completed");
+    });
+  });
+
+  describe("SET_TIMEOUT", () => {
+    it("sets timeoutMs on an item", () => {
+      const withItem = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Task with timeout",
+      });
+      const itemId = withItem.items[0].id;
+
+      const next = dispatch(withItem, {
+        type: "SET_TIMEOUT",
+        id: itemId,
+        timeoutMs: 30000,
+      });
+
+      expect(next.items[0].timeoutMs).toBe(30000);
+    });
+
+    it("clears timeoutMs when set to null", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Task",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, {
+        type: "SET_TIMEOUT",
+        id: itemId,
+        timeoutMs: 30000,
+      });
+
+      const next = dispatch(state, {
+        type: "SET_TIMEOUT",
+        id: itemId,
+        timeoutMs: null,
+      });
+
+      expect(next.items[0].timeoutMs).toBeNull();
+    });
+  });
+
+  describe("CONFIRM_ITEM", () => {
+    it("sets confirmingItemId", () => {
+      const withItem = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "To confirm",
+      });
+      const itemId = withItem.items[0].id;
+
+      const next = dispatch(withItem, { type: "CONFIRM_ITEM", id: itemId });
+
+      expect(next.confirmingItemId).toBe(itemId);
+    });
+  });
+
+  describe("CLEAR_CONFIRMING", () => {
+    it("resets confirmingItemId to null", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Confirmed",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, { type: "CONFIRM_ITEM", id: itemId });
+
+      const next = dispatch(state, { type: "CLEAR_CONFIRMING" });
+
+      expect(next.confirmingItemId).toBeNull();
+    });
+  });
+
+  describe("TOGGLE_AUTO_RUN", () => {
+    it("clears confirmingItemId when toggling", () => {
+      let state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Task",
+      });
+      const itemId = state.items[0].id;
+      state = dispatch(state, { type: "CONFIRM_ITEM", id: itemId });
+
+      const next = dispatch(state, { type: "TOGGLE_AUTO_RUN" });
+
+      expect(next.confirmingItemId).toBeNull();
+    });
+  });
+
+  describe("initial state", () => {
+    it("has paused as false and confirmingItemId as null", () => {
+      expect(initialState.paused).toBe(false);
+      expect(initialState.confirmingItemId).toBeNull();
+    });
+  });
+
+  describe("createQueueItem defaults", () => {
+    it("creates item with timeoutMs null", () => {
+      const state = dispatch(initialState, {
+        type: "ADD_ITEM",
+        prompt: "Test",
+      });
+
+      expect(state.items[0].timeoutMs).toBeNull();
+    });
+  });
 });

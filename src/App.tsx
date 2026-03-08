@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
 import { SessionView } from "./components/SessionView";
@@ -18,7 +19,17 @@ function App() {
     setItemStatus,
     toggleAutoRun,
     clearCompleted,
+    pause,
+    resume,
+    skipItem,
+    retryItem,
+    setItemTimeout,
+    confirmItem,
+    clearConfirming,
   } = useQueue();
+
+  const abortRef = useRef(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleManualSend = useCallback(
     (prompt: string) => {
@@ -27,8 +38,63 @@ function App() {
     [sendPrompt],
   );
 
+  const executeItem = useCallback(
+    (itemId: string, prompt: string, timeoutMs: number | null) => {
+      setItemStatus(itemId, "running");
+
+      if (timeoutMs) {
+        timeoutRef.current = setTimeout(() => {
+          abortRef.current = true;
+          void invoke("abort_prompt");
+        }, timeoutMs);
+      }
+
+      void sendPrompt(prompt, (code) => {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = null;
+        }
+
+        const resultStatus = abortRef.current ? "failed" : code === 0 ? "completed" : "failed";
+        abortRef.current = false;
+        setItemStatus(itemId, resultStatus);
+      });
+    },
+    [sendPrompt, setItemStatus],
+  );
+
+  const handleAbort = useCallback(() => {
+    abortRef.current = true;
+    void invoke("abort_prompt");
+  }, []);
+
+  const handleRetry = useCallback(
+    (id: string) => {
+      retryItem(id);
+    },
+    [retryItem],
+  );
+
+  const handleConfirmExecute = useCallback(
+    (id: string) => {
+      const item = queueState.items.find((i) => i.id === id);
+      if (!item) return;
+      clearConfirming();
+      executeItem(item.id, item.prompt, item.timeoutMs);
+    },
+    [queueState.items, clearConfirming, executeItem],
+  );
+
+  const handleConfirmSkip = useCallback(
+    (id: string) => {
+      skipItem(id);
+      clearConfirming();
+    },
+    [skipItem, clearConfirming],
+  );
+
   useEffect(() => {
-    if (!queueState.autoRun) return;
+    if (queueState.paused) return;
     if (state.status !== "idle") return;
 
     const hasRunning = queueState.items.some((item) => item.status === "running");
@@ -37,17 +103,21 @@ function App() {
     const nextItem = queueState.items.find((item) => item.status === "pending");
     if (!nextItem) return;
 
-    setItemStatus(nextItem.id, "running");
-    void sendPrompt(nextItem.prompt, (code) => {
-      const resultStatus = code === 0 ? "completed" : "failed";
-      setItemStatus(nextItem.id, resultStatus);
-    });
+    if (queueState.autoRun) {
+      executeItem(nextItem.id, nextItem.prompt, nextItem.timeoutMs);
+    } else {
+      if (queueState.confirmingItemId !== nextItem.id) {
+        confirmItem(nextItem.id);
+      }
+    }
   }, [
     queueState.autoRun,
+    queueState.paused,
     queueState.items,
+    queueState.confirmingItemId,
     state.status,
-    sendPrompt,
-    setItemStatus,
+    executeItem,
+    confirmItem,
   ]);
 
   return (
@@ -68,6 +138,13 @@ function App() {
             onReorder={reorder}
             onToggleAutoRun={toggleAutoRun}
             onClearCompleted={clearCompleted}
+            onPause={pause}
+            onResume={resume}
+            onRetryItem={handleRetry}
+            onAbort={handleAbort}
+            onSetItemTimeout={setItemTimeout}
+            onConfirmExecute={handleConfirmExecute}
+            onConfirmSkip={handleConfirmSkip}
           />
         </div>
       </div>

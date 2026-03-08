@@ -11,6 +11,13 @@ interface QueuePanelProps {
   onReorder: (fromIndex: number, toIndex: number) => void;
   onToggleAutoRun: () => void;
   onClearCompleted: () => void;
+  onPause: () => void;
+  onResume: () => void;
+  onRetryItem: (id: string) => void;
+  onAbort: () => void;
+  onSetItemTimeout: (id: string, timeoutMs: number | null) => void;
+  onConfirmExecute: (id: string) => void;
+  onConfirmSkip: (id: string) => void;
 }
 
 export function QueuePanel({
@@ -22,6 +29,13 @@ export function QueuePanel({
   onReorder,
   onToggleAutoRun,
   onClearCompleted,
+  onPause,
+  onResume,
+  onRetryItem,
+  onAbort,
+  onSetItemTimeout,
+  onConfirmExecute,
+  onConfirmSkip,
 }: QueuePanelProps) {
   const [inputText, setInputText] = useState("");
   const dragIndexRef = useRef<number | null>(null);
@@ -80,6 +94,23 @@ export function QueuePanel({
           <span className="queue-count">({pendingCount})</span>
         </div>
         <div className="queue-header-right">
+          {state.paused ? (
+            <button
+              className="btn btn-sm btn-ghost"
+              onClick={onResume}
+              title="Resume queue"
+            >
+              Resume
+            </button>
+          ) : (
+            <button
+              className="btn btn-sm btn-ghost"
+              onClick={onPause}
+              title="Pause queue"
+            >
+              Pause
+            </button>
+          )}
           <div className="toggle" onClick={onToggleAutoRun}>
             <span className="toggle-label">Auto</span>
             <div className={`toggle-track${state.autoRun ? " on" : ""}`}>
@@ -104,11 +135,17 @@ export function QueuePanel({
             key={item.id}
             item={item}
             index={index}
+            isConfirming={state.confirmingItemId === item.id}
             onRemove={onRemoveItem}
             onEdit={onEditItem}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
+            onRetry={onRetryItem}
+            onAbort={onAbort}
+            onSetTimeout={onSetItemTimeout}
+            onConfirmExecute={onConfirmExecute}
+            onConfirmSkip={onConfirmSkip}
           />
         ))}
       </div>

@@ -181,6 +181,23 @@ fn extract_session_id(json: &serde_json::Value) -> Option<String> {
 }
 
 #[tauri::command]
+pub async fn abort_prompt(
+    state: tauri::State<'_, SessionManager>,
+) -> Result<(), String> {
+    let mut child_lock = state.child.lock().await;
+    if let Some(ref mut child) = *child_lock {
+        let _ = child.kill().await;
+    }
+    *child_lock = None;
+
+    let mut lock = state.state.lock().await;
+    if let Some(session) = lock.as_mut() {
+        session.status = SessionStatus::Idle;
+    }
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn stop_session(
     state: tauri::State<'_, SessionManager>,
 ) -> Result<(), String> {
