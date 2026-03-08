@@ -105,7 +105,7 @@ export interface RecentDirectory {
   lastUsedAt: number;
 }
 
-export type PageId = "sessions" | "projects" | "history" | "flows";
+export type PageId = "sessions" | "projects" | "history" | "flows" | "settings";
 
 // Flow types
 export type FlowStepType = "prompt" | "condition" | "loop" | "validation" | "approval";
@@ -194,4 +194,28 @@ export interface HistoryFilter {
   dateTo?: number;
   limit: number;
   offset: number;
+}
+
+// Settings types
+export type ExecutionMode = "auto" | "manual";
+
+export interface KeyboardShortcuts {
+  sendPrompt: string;
+  abort: string;
+  newSession: string;
+  closeSession: string;
+  toggleAutoRun: string;
+  pauseResume: string;
+}
+
+export interface Settings {
+  defaultCliType: CliType;
+  defaultExecutionMode: ExecutionMode;
+  defaultTimeoutSecs: number;
+  autoRetryOnFailure: boolean;
+  notifyOnCompletion: boolean;
+  notifyOnError: boolean;
+  notifyOnApproval: boolean;
+  autoWorktreeForFlows: boolean;
+  keyboardShortcuts: KeyboardShortcuts;
 }

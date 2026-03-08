@@ -6,13 +6,16 @@ mod flow_runner;
 mod history;
 mod project;
 mod session;
+mod settings;
 mod util;
+mod worktree;
 
 use db::Database;
 use flow::FlowStore;
 use flow_runner::FlowExecutionManager;
 use project::ProjectStore;
 use session::SessionManager;
+use settings::SettingsStore;
 use std::sync::Arc;
 use tauri::Manager;
 
@@ -20,9 +23,11 @@ use tauri::Manager;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_notification::init())
         .manage(SessionManager::new())
         .manage(ProjectStore::new())
         .manage(FlowStore::new())
+        .manage(SettingsStore::new())
         .manage(Arc::new(FlowExecutionManager::new()))
         .invoke_handler(tauri::generate_handler![
             commands::start_session,
@@ -51,6 +56,8 @@ pub fn run() {
             commands::execute_flow,
             commands::approve_flow_step,
             commands::reject_flow_step,
+            commands::get_settings,
+            commands::update_settings,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -73,6 +80,12 @@ pub fn run() {
             let flow_store = app_handle.state::<FlowStore>();
             if let Err(e) = flow_store.load_blocking() {
                 log::warn!("Failed to load flow data: {}", e);
+            }
+
+            // Load persisted settings data
+            let settings_store = app_handle.state::<SettingsStore>();
+            if let Err(e) = settings_store.load_blocking() {
+                log::warn!("Failed to load settings data: {}", e);
             }
 
             // Initialize SQLite database
