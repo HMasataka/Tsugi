@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useRef, useState } from "react";
+import { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import "./App.css";
 import { Sidebar } from "./components/Sidebar";
 import { SessionView } from "./components/SessionView";
@@ -7,10 +7,18 @@ import { ProjectsView } from "./components/ProjectsView";
 import { HistoryView } from "./components/HistoryView";
 import { FlowsView } from "./components/FlowsView";
 import { FlowEditorView } from "./components/FlowEditorView";
+import { SettingsView } from "./components/SettingsView";
 import { StatusBar } from "./components/StatusBar";
 import { useSessionManager } from "./hooks/useSessionManager";
-import type { PageId, CliType, Flow } from "./types";
+import { useSettings } from "./hooks/useSettings";
+import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
+import type { PageId, CliType, Flow, Settings } from "./types";
 import { useFlows } from "./hooks/useFlows";
+import {
+  isPermissionGranted,
+  requestPermission,
+  sendNotification,
+} from "@tauri-apps/plugin-notification";
 
 function App() {
   const [activePage, setActivePage] = useState<PageId>("sessions");
@@ -44,9 +52,26 @@ function App() {
   } = useSessionManager();
 
   const { executeFlow, approveStep, rejectStep } = useFlows();
+  const { settings, updateSettings } = useSettings();
 
   const abortRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const notify = useCallback(async (title: string, body: string) => {
+    try {
+      let granted = await isPermissionGranted();
+      if (!granted) {
+        const permission = await requestPermission();
+        granted = permission === "granted";
+      }
+      if (granted) {
+        sendNotification({ title, body });
+      }
+    } catch {
+      // Notification delivery is best-effort; log for diagnostics only
+      void 0;
+    }
+  }, []);
 
   const activeId = managerState.activeSessionId;
   const sessionState = activeSession?.state ?? null;
@@ -174,6 +199,9 @@ function App() {
 
         const executionPromise = executeFlow(flow.id, cwd, cliType, null, (event) => {
           if (event.event === "approvalRequired" && resolvedExecutionId) {
+            if (settings?.notifyOnApproval) {
+              void notify("Approval Required", `Step "${String(event.data.stepName)}" requires approval.`);
+            }
             const approved = window.confirm(
               `Step "${String(event.data.stepName)}" requires approval. Approve?`,
             );
@@ -181,8 +209,14 @@ function App() {
               ? approveStep(resolvedExecutionId)
               : rejectStep(resolvedExecutionId));
           } else if (event.event === "flowFailed") {
+            if (settings?.notifyOnError) {
+              void notify("Flow Failed", String(event.data.error));
+            }
             window.alert(`Flow failed: ${String(event.data.error)}`);
           } else if (event.event === "flowCompleted") {
+            if (settings?.notifyOnCompletion) {
+              void notify("Flow Completed", `Flow "${flow.name}" completed successfully.`);
+            }
             window.alert("Flow completed successfully.");
           }
         });
@@ -204,8 +238,72 @@ function App() {
         });
       }
     },
-    [startSession, addItems, toggleAutoRun, executeFlow, approveStep, rejectStep],
+    [startSession, addItems, toggleAutoRun, executeFlow, approveStep, rejectStep, settings, notify],
   );
+
+  // Notify when manual mode confirmation is required
+  useEffect(() => {
+    if (!queueState?.confirmingItemId) return;
+    if (!settings?.notifyOnApproval) return;
+    const item = queueState.items.find((i) => i.id === queueState.confirmingItemId);
+    if (item) {
+      void notify("Approval Required", `Queue item "${item.prompt.slice(0, 50)}" needs confirmation.`);
+    }
+  }, [queueState?.confirmingItemId, queueState?.items, settings?.notifyOnApproval, notify]);
+
+  // Keyboard shortcuts
+  const handleSaveSettings = useCallback(
+    (newSettings: Settings) => {
+      updateSettings(newSettings).catch((e: unknown) => {
+        const message = e instanceof Error ? e.message : String(e);
+        window.alert(`Failed to save settings: ${message}`);
+      });
+    },
+    [updateSettings],
+  );
+
+  const shortcutActions = useMemo(
+    () => ({
+      sendPrompt: () => {
+        // No-op: PromptInput's own onKeyDown fires before this
+        // document-level handler. This entry exists so that
+        // useKeyboardShortcuts allows the shortcut in input contexts
+        // (see isInputFocused guard) and calls preventDefault().
+      },
+      abort: () => {
+        if (activeId) {
+          abortRef.current = true;
+          void abortPrompt(activeId);
+        }
+      },
+      newSession: () => {
+        setShowSetup(true);
+        setActivePage("sessions");
+      },
+      closeSession: () => {
+        if (activeId) {
+          void closeSession(activeId);
+        }
+      },
+      toggleAutoRun: () => {
+        if (activeId) {
+          toggleAutoRun(activeId);
+        }
+      },
+      pauseResume: () => {
+        if (activeId && queueState) {
+          if (queueState.paused) {
+            resumeQueue(activeId);
+          } else {
+            pauseQueue(activeId);
+          }
+        }
+      },
+    }),
+    [activeId, abortPrompt, closeSession, toggleAutoRun, queueState, pauseQueue, resumeQueue],
+  );
+
+  useKeyboardShortcuts(settings?.keyboardShortcuts ?? null, shortcutActions);
 
   // Auto-execute queue items for the active session
   useEffect(() => {
@@ -334,6 +432,13 @@ function App() {
                   }
                 });
               }}
+            />
+          )}
+          {activePage === "settings" && (
+            <SettingsView
+              key={JSON.stringify(settings)}
+              settings={settings}
+              onSave={handleSaveSettings}
             />
           )}
         </div>
