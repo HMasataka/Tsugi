@@ -1,6 +1,7 @@
 use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
 use crate::db::Database;
 use crate::flow::{Flow, FlowStep, FlowStore};
+use crate::flow_runner::{FlowExecution, FlowExecutionEvent, FlowExecutionManager, FlowRunner};
 use crate::history::{
     self, Execution, ExecutionDetail, ExecutionStep, ExecutionSummary, HistoryFilter, StepOutput,
 };
@@ -12,6 +13,7 @@ use crate::util;
 use serde::Serialize;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicI64, Ordering};
+use std::sync::Arc;
 use tauri::ipc::Channel;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -522,6 +524,109 @@ pub async fn export_flow(
     store: tauri::State<'_, FlowStore>,
 ) -> Result<String, String> {
     store.export_flow(&flow_id)
+}
+
+// Flow execution commands
+
+#[tauri::command]
+pub async fn execute_flow(
+    flow_id: String,
+    cwd: String,
+    cli_type: String,
+    session_id: Option<String>,
+    on_event: Channel<FlowExecutionEvent>,
+    flow_store: tauri::State<'_, FlowStore>,
+    execution_manager: tauri::State<'_, Arc<FlowExecutionManager>>,
+) -> Result<String, String> {
+    let cli = match cli_type.as_str() {
+        "claude-code" => CliType::ClaudeCode,
+        "codex" => CliType::Codex,
+        other => return Err(format!("Unknown CLI type: {}", other)),
+    };
+
+    let path = PathBuf::from(&cwd);
+    if !path.is_dir() {
+        return Err(format!("Directory does not exist: {}", cwd));
+    }
+
+    let flow = flow_store.get(&flow_id)?;
+    let exec_id = util::generate_id();
+
+    {
+        let mut executions = execution_manager.executions.lock().await;
+        executions.insert(
+            exec_id.clone(),
+            FlowExecution {
+                approval_sender: None,
+            },
+        );
+    }
+
+    let exec_id_clone = exec_id.clone();
+    let manager_clone = Arc::clone(&execution_manager);
+
+    tokio::spawn(async move {
+        let result = FlowRunner::execute_flow(
+            &flow.steps,
+            &path,
+            &cli,
+            session_id.as_deref(),
+            &on_event,
+            &exec_id_clone,
+            &manager_clone,
+        )
+        .await;
+
+        // Clean up execution entry
+        let mut executions = manager_clone.executions.lock().await;
+        executions.remove(&exec_id_clone);
+
+        if let Err(e) = result {
+            log::warn!("Flow execution failed: {}", e);
+        }
+    });
+
+    Ok(exec_id)
+}
+
+#[tauri::command]
+pub async fn approve_flow_step(
+    execution_id: String,
+    execution_manager: tauri::State<'_, Arc<FlowExecutionManager>>,
+) -> Result<(), String> {
+    let mut executions = execution_manager.executions.lock().await;
+    let execution = executions
+        .get_mut(&execution_id)
+        .ok_or_else(|| format!("Execution not found: {}", execution_id))?;
+
+    let sender = execution
+        .approval_sender
+        .take()
+        .ok_or("No pending approval for this execution")?;
+
+    sender
+        .send(true)
+        .map_err(|_| "Failed to send approval".to_string())
+}
+
+#[tauri::command]
+pub async fn reject_flow_step(
+    execution_id: String,
+    execution_manager: tauri::State<'_, Arc<FlowExecutionManager>>,
+) -> Result<(), String> {
+    let mut executions = execution_manager.executions.lock().await;
+    let execution = executions
+        .get_mut(&execution_id)
+        .ok_or_else(|| format!("Execution not found: {}", execution_id))?;
+
+    let sender = execution
+        .approval_sender
+        .take()
+        .ok_or("No pending approval for this execution")?;
+
+    sender
+        .send(false)
+        .map_err(|_| "Failed to send rejection".to_string())
 }
 
 #[cfg(test)]

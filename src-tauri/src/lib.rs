@@ -2,6 +2,7 @@ mod cli_adapter;
 mod commands;
 mod db;
 mod flow;
+mod flow_runner;
 mod history;
 mod project;
 mod session;
@@ -9,8 +10,10 @@ mod util;
 
 use db::Database;
 use flow::FlowStore;
+use flow_runner::FlowExecutionManager;
 use project::ProjectStore;
 use session::SessionManager;
+use std::sync::Arc;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -20,6 +23,7 @@ pub fn run() {
         .manage(SessionManager::new())
         .manage(ProjectStore::new())
         .manage(FlowStore::new())
+        .manage(Arc::new(FlowExecutionManager::new()))
         .invoke_handler(tauri::generate_handler![
             commands::start_session,
             commands::send_prompt,
@@ -44,6 +48,9 @@ pub fn run() {
             commands::delete_flow,
             commands::import_flow,
             commands::export_flow,
+            commands::execute_flow,
+            commands::approve_flow_step,
+            commands::reject_flow_step,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();

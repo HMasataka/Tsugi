@@ -3,12 +3,42 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub enum FlowStepType {
+    Prompt,
+    Condition,
+    Loop,
+    Validation,
+    Approval,
+}
+
+fn default_step_type() -> FlowStepType {
+    FlowStepType::Prompt
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct FlowStep {
     pub name: String,
+    #[serde(default = "default_step_type")]
+    pub step_type: FlowStepType,
     pub prompt: String,
     pub timeout_secs: Option<u32>,
+
+    // condition
+    pub condition_prompt: Option<String>,
+    pub then_steps: Option<Vec<FlowStep>>,
+    pub else_steps: Option<Vec<FlowStep>>,
+
+    // loop
+    pub loop_condition_prompt: Option<String>,
+    pub max_iterations: Option<u32>,
+
+    // validation
+    pub validation_pattern: Option<String>,
+    pub max_retries: Option<u32>,
+    pub on_fail_steps: Option<Vec<FlowStep>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -194,18 +224,27 @@ mod tests {
         }
     }
 
+    fn prompt_step(name: &str, prompt: &str, timeout_secs: Option<u32>) -> FlowStep {
+        FlowStep {
+            name: name.to_string(),
+            step_type: FlowStepType::Prompt,
+            prompt: prompt.to_string(),
+            timeout_secs,
+            condition_prompt: None,
+            then_steps: None,
+            else_steps: None,
+            loop_condition_prompt: None,
+            max_iterations: None,
+            validation_pattern: None,
+            max_retries: None,
+            on_fail_steps: None,
+        }
+    }
+
     fn sample_steps() -> Vec<FlowStep> {
         vec![
-            FlowStep {
-                name: "Review".to_string(),
-                prompt: "Review the code".to_string(),
-                timeout_secs: Some(300),
-            },
-            FlowStep {
-                name: "Test".to_string(),
-                prompt: "Generate tests".to_string(),
-                timeout_secs: None,
-            },
+            prompt_step("Review", "Review the code", Some(300)),
+            prompt_step("Test", "Generate tests", None),
         ]
     }
 
@@ -263,11 +302,7 @@ mod tests {
                 &created.id,
                 "Updated".to_string(),
                 "new desc".to_string(),
-                vec![FlowStep {
-                    name: "Single".to_string(),
-                    prompt: "Do something".to_string(),
-                    timeout_secs: None,
-                }],
+                vec![prompt_step("Single", "Do something", None)],
             )
             .unwrap();
 
@@ -366,11 +401,7 @@ mod tests {
             id: "test-id".to_string(),
             name: "Test Flow".to_string(),
             description: "A test flow".to_string(),
-            steps: vec![FlowStep {
-                name: "Step 1".to_string(),
-                prompt: "Do this".to_string(),
-                timeout_secs: Some(60),
-            }],
+            steps: vec![prompt_step("Step 1", "Do this", Some(60))],
             created_at: 1700000000000,
             updated_at: 1700000000000,
         };
@@ -387,14 +418,121 @@ mod tests {
 
     #[test]
     fn flow_step_without_timeout() {
-        let step = FlowStep {
-            name: "No timeout".to_string(),
-            prompt: "prompt".to_string(),
-            timeout_secs: None,
-        };
+        let step = prompt_step("No timeout", "prompt", None);
         let json = serde_json::to_value(&step).unwrap();
         assert_eq!(json["name"], "No timeout");
         assert!(json["timeoutSecs"].is_null());
+    }
+
+    #[test]
+    fn step_type_defaults_to_prompt() {
+        let json_str = r#"{"name":"Legacy","prompt":"do it","timeoutSecs":null}"#;
+        let step: FlowStep = serde_json::from_str(json_str).unwrap();
+        assert_eq!(step.step_type, FlowStepType::Prompt);
+    }
+
+    #[test]
+    fn step_type_serializes_correctly() {
+        let step = FlowStep {
+            name: "Check".to_string(),
+            step_type: FlowStepType::Condition,
+            prompt: String::new(),
+            timeout_secs: None,
+            condition_prompt: Some("Is it good?".to_string()),
+            then_steps: Some(vec![prompt_step("Yes path", "do yes", None)]),
+            else_steps: Some(vec![prompt_step("No path", "do no", None)]),
+            loop_condition_prompt: None,
+            max_iterations: None,
+            validation_pattern: None,
+            max_retries: None,
+            on_fail_steps: None,
+        };
+        let json = serde_json::to_value(&step).unwrap();
+        assert_eq!(json["stepType"], "condition");
+        assert_eq!(json["conditionPrompt"], "Is it good?");
+        assert_eq!(json["thenSteps"][0]["name"], "Yes path");
+        assert_eq!(json["elseSteps"][0]["name"], "No path");
+    }
+
+    #[test]
+    fn loop_step_serializes_correctly() {
+        let step = FlowStep {
+            name: "Repeat".to_string(),
+            step_type: FlowStepType::Loop,
+            prompt: "Try again".to_string(),
+            timeout_secs: None,
+            condition_prompt: None,
+            then_steps: None,
+            else_steps: None,
+            loop_condition_prompt: Some("Is it done?".to_string()),
+            max_iterations: Some(5),
+            validation_pattern: None,
+            max_retries: None,
+            on_fail_steps: None,
+        };
+        let json = serde_json::to_value(&step).unwrap();
+        assert_eq!(json["stepType"], "loop");
+        assert_eq!(json["loopConditionPrompt"], "Is it done?");
+        assert_eq!(json["maxIterations"], 5);
+    }
+
+    #[test]
+    fn validation_step_serializes_correctly() {
+        let step = FlowStep {
+            name: "Validate".to_string(),
+            step_type: FlowStepType::Validation,
+            prompt: "Generate JSON".to_string(),
+            timeout_secs: None,
+            condition_prompt: None,
+            then_steps: None,
+            else_steps: None,
+            loop_condition_prompt: None,
+            max_iterations: None,
+            validation_pattern: Some(r"^\{.*\}$".to_string()),
+            max_retries: Some(3),
+            on_fail_steps: None,
+        };
+        let json = serde_json::to_value(&step).unwrap();
+        assert_eq!(json["stepType"], "validation");
+        assert_eq!(json["validationPattern"], r"^\{.*\}$");
+        assert_eq!(json["maxRetries"], 3);
+    }
+
+    #[test]
+    fn approval_step_serializes_correctly() {
+        let step = FlowStep {
+            name: "Review gate".to_string(),
+            step_type: FlowStepType::Approval,
+            prompt: String::new(),
+            timeout_secs: None,
+            condition_prompt: None,
+            then_steps: None,
+            else_steps: None,
+            loop_condition_prompt: None,
+            max_iterations: None,
+            validation_pattern: None,
+            max_retries: None,
+            on_fail_steps: None,
+        };
+        let json = serde_json::to_value(&step).unwrap();
+        assert_eq!(json["stepType"], "approval");
+    }
+
+    #[test]
+    fn backward_compatible_flow_json_deserializes() {
+        let json_str = r#"{
+            "id": "old-flow",
+            "name": "Legacy Flow",
+            "description": "Before v0.8",
+            "steps": [
+                {"name": "Step 1", "prompt": "Do this", "timeoutSecs": 60}
+            ],
+            "createdAt": 1700000000000,
+            "updatedAt": 1700000000000
+        }"#;
+        let flow: Flow = serde_json::from_str(json_str).unwrap();
+        assert_eq!(flow.steps[0].step_type, FlowStepType::Prompt);
+        assert!(flow.steps[0].condition_prompt.is_none());
     }
 
     #[test]
