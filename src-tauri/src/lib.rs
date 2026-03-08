@@ -1,12 +1,14 @@
 mod cli_adapter;
 mod commands;
 mod db;
+mod flow;
 mod history;
 mod project;
 mod session;
 mod util;
 
 use db::Database;
+use flow::FlowStore;
 use project::ProjectStore;
 use session::SessionManager;
 use tauri::Manager;
@@ -17,6 +19,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(SessionManager::new())
         .manage(ProjectStore::new())
+        .manage(FlowStore::new())
         .invoke_handler(tauri::generate_handler![
             commands::start_session,
             commands::send_prompt,
@@ -34,6 +37,13 @@ pub fn run() {
             commands::export_execution,
             commands::delete_execution,
             commands::write_export_file,
+            commands::list_flows,
+            commands::get_flow,
+            commands::create_flow,
+            commands::update_flow,
+            commands::delete_flow,
+            commands::import_flow,
+            commands::export_flow,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -50,6 +60,12 @@ pub fn run() {
             let project_store = app_handle.state::<ProjectStore>();
             if let Err(e) = project_store.load_blocking() {
                 log::warn!("Failed to load project data: {}", e);
+            }
+
+            // Load persisted flow data
+            let flow_store = app_handle.state::<FlowStore>();
+            if let Err(e) = flow_store.load_blocking() {
+                log::warn!("Failed to load flow data: {}", e);
             }
 
             // Initialize SQLite database

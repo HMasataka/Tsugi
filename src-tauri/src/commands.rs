@@ -1,5 +1,6 @@
 use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
 use crate::db::Database;
+use crate::flow::{Flow, FlowStep, FlowStore};
 use crate::history::{
     self, Execution, ExecutionDetail, ExecutionStep, ExecutionSummary, HistoryFilter, StepOutput,
 };
@@ -459,6 +460,68 @@ pub async fn delete_execution(
 pub async fn write_export_file(path: String, content: String) -> Result<(), String> {
     std::fs::write(&path, &content)
         .map_err(|e| format!("Failed to write export file: {}", e))
+}
+
+// Flow commands
+
+#[tauri::command]
+pub async fn list_flows(
+    store: tauri::State<'_, FlowStore>,
+) -> Result<Vec<Flow>, String> {
+    store.list()
+}
+
+#[tauri::command]
+pub async fn get_flow(
+    flow_id: String,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<Flow, String> {
+    store.get(&flow_id)
+}
+
+#[tauri::command]
+pub async fn create_flow(
+    name: String,
+    description: String,
+    steps: Vec<FlowStep>,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<Flow, String> {
+    store.create(name, description, steps)
+}
+
+#[tauri::command]
+pub async fn update_flow(
+    flow_id: String,
+    name: String,
+    description: String,
+    steps: Vec<FlowStep>,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<Flow, String> {
+    store.update(&flow_id, name, description, steps)
+}
+
+#[tauri::command]
+pub async fn delete_flow(
+    flow_id: String,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<(), String> {
+    store.delete(&flow_id)
+}
+
+#[tauri::command]
+pub async fn import_flow(
+    json: String,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<Flow, String> {
+    store.import_flow(&json)
+}
+
+#[tauri::command]
+pub async fn export_flow(
+    flow_id: String,
+    store: tauri::State<'_, FlowStore>,
+) -> Result<String, String> {
+    store.export_flow(&flow_id)
 }
 
 #[cfg(test)]
