@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { sessionManagerReducer, initialManagerState } from "./useSessionManager";
+import {
+  sessionManagerReducer,
+  initialManagerState,
+  parseOutputContent,
+  extractUsage,
+} from "./useSessionManager";
 import type { SessionManagerAction } from "./useSessionManager";
 import type { SessionManagerState } from "../types";
 
@@ -468,5 +473,209 @@ describe("sessionManagerReducer", () => {
       expect(state.sessions[0].state.status).toBe("running");
       expect(state.sessions[1].state.status).toBe("idle");
     });
+  });
+
+  describe("SESSION_ADD_USAGE", () => {
+    it("accumulates token usage in both session and prompt totals", () => {
+      let state = dispatch(initialManagerState, {
+        type: "ADD_SESSION",
+        id: "session-1",
+        cwd: "/tmp/a",
+        cliType: "claude-code",
+      });
+      state = dispatch(state, {
+        type: "SESSION_ADD_USAGE",
+        sessionId: "session-1",
+        usage: {
+          inputTokens: 100,
+          cacheCreationInputTokens: 50,
+          cacheReadInputTokens: 20,
+          outputTokens: 30,
+        },
+      });
+
+      expect(state.sessions[0].state.tokenUsage.inputTokens).toBe(100);
+      expect(state.sessions[0].state.tokenUsage.outputTokens).toBe(30);
+
+      state = dispatch(state, {
+        type: "SESSION_ADD_USAGE",
+        sessionId: "session-1",
+        usage: {
+          inputTokens: 200,
+          cacheCreationInputTokens: 0,
+          cacheReadInputTokens: 0,
+          outputTokens: 50,
+        },
+      });
+
+      expect(state.sessions[0].state.tokenUsage.inputTokens).toBe(300);
+      expect(state.sessions[0].state.tokenUsage.outputTokens).toBe(80);
+    });
+  });
+
+});
+
+describe("parseOutputContent", () => {
+  it("parses assistant text content", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: "Hello world" }],
+      },
+    });
+    const entries = parseOutputContent(raw);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("text");
+    expect(entries[0].content).toBe("Hello world");
+  });
+
+  it("parses tool_use blocks from assistant messages", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [
+          { type: "text", text: "Let me read the file." },
+          {
+            type: "tool_use",
+            id: "toolu_xxx",
+            name: "Read",
+            input: { file_path: "/foo/bar.ts" },
+          },
+        ],
+      },
+    });
+    const entries = parseOutputContent(raw);
+    expect(entries).toHaveLength(2);
+    expect(entries[0].type).toBe("text");
+    expect(entries[1].type).toBe("tool_use");
+    expect(entries[1].toolName).toBe("Read");
+    expect(entries[1].content).toBe("Read: /foo/bar.ts");
+  });
+
+  it("parses tool_result events", () => {
+    const raw = JSON.stringify({
+      type: "tool_result",
+      content: "file contents here",
+    });
+    const entries = parseOutputContent(raw);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("tool_result");
+    expect(entries[0].content).toBe("file contents here");
+  });
+
+  it("parses system events", () => {
+    const raw = JSON.stringify({
+      type: "system",
+      subtype: "init",
+      session_id: "abc-123",
+    });
+    const entries = parseOutputContent(raw);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("system");
+    expect(entries[0].content).toBe("system:init");
+  });
+
+  it("handles invalid JSON gracefully", () => {
+    const entries = parseOutputContent("not json");
+    expect(entries).toHaveLength(1);
+    expect(entries[0].type).toBe("system");
+    expect(entries[0].content).toBe("not json");
+  });
+
+  it("summarizes Bash tool use with command", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "toolu_xxx",
+            name: "Bash",
+            input: { command: "ls -la" },
+          },
+        ],
+      },
+    });
+    const entries = parseOutputContent(raw);
+    const toolEntry = entries.find((e) => e.type === "tool_use");
+    expect(toolEntry?.content).toBe("Bash: ls -la");
+  });
+
+  it("summarizes Grep tool use with pattern", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        role: "assistant",
+        content: [
+          {
+            type: "tool_use",
+            id: "toolu_xxx",
+            name: "Grep",
+            input: { pattern: "TODO" },
+          },
+        ],
+      },
+    });
+    const entries = parseOutputContent(raw);
+    const toolEntry = entries.find((e) => e.type === "tool_use");
+    expect(toolEntry?.content).toBe("Grep: TODO");
+  });
+});
+
+describe("extractUsage", () => {
+  it("extracts token usage from assistant message", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        usage: {
+          input_tokens: 1234,
+          cache_creation_input_tokens: 500,
+          cache_read_input_tokens: 200,
+          output_tokens: 567,
+        },
+      },
+    });
+    const usage = extractUsage(raw);
+    expect(usage).not.toBeNull();
+    expect(usage!.inputTokens).toBe(1234);
+    expect(usage!.cacheCreationInputTokens).toBe(500);
+    expect(usage!.cacheReadInputTokens).toBe(200);
+    expect(usage!.outputTokens).toBe(567);
+  });
+
+  it("returns null for non-assistant events", () => {
+    const raw = JSON.stringify({ type: "system", subtype: "init" });
+    expect(extractUsage(raw)).toBeNull();
+  });
+
+  it("returns null when usage is missing", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: { content: [] },
+    });
+    expect(extractUsage(raw)).toBeNull();
+  });
+
+  it("returns null for invalid JSON", () => {
+    expect(extractUsage("not json")).toBeNull();
+  });
+
+  it("defaults missing cache fields to 0", () => {
+    const raw = JSON.stringify({
+      type: "assistant",
+      message: {
+        usage: {
+          input_tokens: 100,
+          output_tokens: 50,
+        },
+      },
+    });
+    const usage = extractUsage(raw);
+    expect(usage).not.toBeNull();
+    expect(usage!.cacheCreationInputTokens).toBe(0);
+    expect(usage!.cacheReadInputTokens).toBe(0);
   });
 });

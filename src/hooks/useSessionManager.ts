@@ -14,6 +14,7 @@ import type {
   QueueItem,
   SessionEntry,
   SessionManagerState,
+  TokenUsage,
 } from "../types";
 
 function createQueueItem(prompt: string): QueueItem {
@@ -43,11 +44,28 @@ const initialQueueState: QueueState = {
   confirmingItemId: null,
 };
 
+const zeroUsage: TokenUsage = {
+  inputTokens: 0,
+  cacheCreationInputTokens: 0,
+  cacheReadInputTokens: 0,
+  outputTokens: 0,
+};
+
+function addUsage(a: TokenUsage, b: TokenUsage): TokenUsage {
+  return {
+    inputTokens: a.inputTokens + b.inputTokens,
+    cacheCreationInputTokens: a.cacheCreationInputTokens + b.cacheCreationInputTokens,
+    cacheReadInputTokens: a.cacheReadInputTokens + b.cacheReadInputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+  };
+}
+
 const initialSessionState: SessionState = {
   cwd: null,
   cliType: "claude-code",
   status: "terminated",
   outputs: [],
+  tokenUsage: { ...zeroUsage },
 };
 
 type SessionManagerAction =
@@ -72,7 +90,8 @@ type SessionManagerAction =
   | { type: "QUEUE_RETRY_ITEM"; sessionId: string; itemId: string }
   | { type: "QUEUE_SET_TIMEOUT"; sessionId: string; itemId: string; timeoutMs: number | null }
   | { type: "QUEUE_CONFIRM_ITEM"; sessionId: string; itemId: string }
-  | { type: "QUEUE_CLEAR_CONFIRMING"; sessionId: string };
+  | { type: "QUEUE_CLEAR_CONFIRMING"; sessionId: string }
+  | { type: "SESSION_ADD_USAGE"; sessionId: string; usage: TokenUsage };
 
 function updateSession(
   sessions: SessionEntry[],
@@ -298,50 +317,153 @@ function sessionManagerReducer(
           confirmingItemId: null,
         })),
       };
+
+    case "SESSION_ADD_USAGE":
+      return {
+        ...state,
+        sessions: updateSession(state.sessions, action.sessionId, (s) => ({
+          ...s,
+          state: {
+            ...s.state,
+            tokenUsage: addUsage(s.state.tokenUsage, action.usage),
+          },
+        })),
+      };
   }
 }
 
-function parseOutputContent(raw: string): OutputEntry {
+function parseOutputContent(raw: string): OutputEntry[] {
   const id = crypto.randomUUID();
   const timestamp = Date.now();
 
   try {
     const json = JSON.parse(raw) as Record<string, unknown>;
-    const eventType = json.type as string | undefined;
+    const eventType = typeof json.type === "string" ? json.type : undefined;
 
     if (eventType === "assistant") {
-      const content = extractAssistantText(json);
-      return { id, type: "text", content, timestamp };
+      return extractAssistantEntries(json, id, timestamp);
+    }
+
+    if (eventType === "tool_result") {
+      const content = typeof json.content === "string" ? json.content : JSON.stringify(json);
+      return [{
+        id,
+        type: "tool_result",
+        content,
+        timestamp,
+      }];
     }
 
     if (eventType === "system") {
-      const subtype = json.subtype as string | undefined;
-      const message = json.message as string | undefined;
-      return {
+      const subtype = typeof json.subtype === "string" ? json.subtype : "unknown";
+      const message = typeof json.message === "string" ? json.message : undefined;
+      return [{
         id,
         type: "system",
-        content: message ?? `system:${subtype ?? "unknown"}`,
+        content: message ?? `system:${subtype}`,
         timestamp,
-      };
+      }];
     }
 
-    return { id, type: "system", content: raw, timestamp };
+    return [{ id, type: "system", content: raw, timestamp }];
   } catch {
-    return { id, type: "system", content: raw, timestamp };
+    return [{ id, type: "system", content: raw, timestamp }];
   }
 }
 
-function extractAssistantText(json: Record<string, unknown>): string {
-  const message = json.message as Record<string, unknown> | undefined;
-  if (!message) return JSON.stringify(json);
+function summarizeToolUse(name: string, input: Record<string, unknown>): string {
+  const keyForTool: Record<string, string> = {
+    Read: "file_path",
+    Edit: "file_path",
+    Write: "file_path",
+    Bash: "command",
+    Glob: "pattern",
+    Grep: "pattern",
+  };
 
-  const content = message.content as Array<Record<string, unknown>> | undefined;
-  if (!Array.isArray(content)) return JSON.stringify(json);
+  const key = keyForTool[name];
+  if (!key || typeof input[key] !== "string") {
+    return name;
+  }
 
-  return content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text as string)
-    .join("\n");
+  return `${name}: ${input[key]}`;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function extractAssistantEntries(
+  json: Record<string, unknown>,
+  baseId: string,
+  timestamp: number,
+): OutputEntry[] {
+  if (!isRecord(json.message)) {
+    return [{ id: baseId, type: "text", content: JSON.stringify(json), timestamp }];
+  }
+  const message = json.message;
+
+  if (!Array.isArray(message.content)) {
+    return [{ id: baseId, type: "text", content: JSON.stringify(json), timestamp }];
+  }
+  const content = message.content as unknown[];
+
+  const entries: OutputEntry[] = [];
+
+  const textParts = content
+    .filter((block): block is Record<string, unknown> => isRecord(block) && block.type === "text")
+    .map((block) => (typeof block.text === "string" ? block.text : String(block.text)));
+  if (textParts.length > 0) {
+    entries.push({ id: baseId, type: "text", content: textParts.join("\n"), timestamp });
+  }
+
+  const toolBlocks = content.filter(
+    (block): block is Record<string, unknown> => isRecord(block) && block.type === "tool_use",
+  );
+  for (const block of toolBlocks) {
+    const toolName = typeof block.name === "string" ? block.name : "unknown";
+    const toolInput = isRecord(block.input) ? block.input : {};
+    entries.push({
+      id: crypto.randomUUID(),
+      type: "tool_use",
+      content: summarizeToolUse(toolName, toolInput),
+      timestamp,
+      toolName,
+      toolInput,
+    });
+  }
+
+  if (entries.length === 0) {
+    entries.push({ id: baseId, type: "text", content: "", timestamp });
+  }
+
+  return entries;
+}
+
+function toNumber(value: unknown): number {
+  return typeof value === "number" ? value : 0;
+}
+
+function extractUsage(raw: string): TokenUsage | null {
+  try {
+    const json = JSON.parse(raw) as Record<string, unknown>;
+    if (json.type !== "assistant") return null;
+
+    if (!isRecord(json.message)) return null;
+    const message = json.message;
+
+    if (!isRecord(message.usage)) return null;
+    const usage = message.usage;
+
+    return {
+      inputTokens: toNumber(usage.input_tokens),
+      cacheCreationInputTokens: toNumber(usage.cache_creation_input_tokens),
+      cacheReadInputTokens: toNumber(usage.cache_read_input_tokens),
+      outputTokens: toNumber(usage.output_tokens),
+    };
+  } catch {
+    return null;
+  }
 }
 
 const initialManagerState: SessionManagerState = {
@@ -380,8 +502,14 @@ export function useSessionManager() {
         switch (event.event) {
           case "output": {
             const data = event.data as OutputEventData;
-            const entry = parseOutputContent(data.raw);
-            dispatch({ type: "SESSION_ADD_OUTPUT", sessionId, entry });
+            const entries = parseOutputContent(data.raw);
+            for (const entry of entries) {
+              dispatch({ type: "SESSION_ADD_OUTPUT", sessionId, entry });
+            }
+            const usage = extractUsage(data.raw);
+            if (usage) {
+              dispatch({ type: "SESSION_ADD_USAGE", sessionId, usage });
+            }
             break;
           }
           case "sessionStarted": {
@@ -576,5 +704,10 @@ export function useSessionManager() {
   };
 }
 
-export { sessionManagerReducer, initialManagerState };
+export {
+  sessionManagerReducer,
+  initialManagerState,
+  parseOutputContent,
+  extractUsage,
+};
 export type { SessionManagerAction };

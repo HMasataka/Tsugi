@@ -4,9 +4,18 @@ export type SessionStatus = "idle" | "running" | "terminated";
 
 export interface OutputEntry {
   id: string;
-  type: "text" | "system" | "error";
+  type: "text" | "system" | "error" | "tool_use" | "tool_result";
   content: string;
   timestamp: number;
+  toolName?: string;
+  toolInput?: Record<string, unknown>;
+}
+
+export interface TokenUsage {
+  inputTokens: number;
+  cacheCreationInputTokens: number;
+  cacheReadInputTokens: number;
+  outputTokens: number;
 }
 
 export interface SessionState {
@@ -14,6 +23,7 @@ export interface SessionState {
   cliType: CliType;
   status: SessionStatus;
   outputs: OutputEntry[];
+  tokenUsage: TokenUsage;
 }
 
 export interface SessionEvent {
