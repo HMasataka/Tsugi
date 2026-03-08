@@ -1,0 +1,97 @@
+version: "3"
+
+tasks:
+  dev:
+    desc: Tauri アプリを開発モードで起動
+    cmds:
+      - cargo tauri dev
+
+  dev:front:
+    desc: フロントエンドのみ起動（ブラウザで確認）
+    cmds:
+      - pnpm dev
+
+  build:
+    desc: プロダクションビルド（バイナリ生成）
+    cmds:
+      - cargo tauri build
+
+  test:
+    desc: 全テスト実行（Rust + フロントエンド）
+    cmds:
+      - task: test:rust
+      - task: test:front
+
+  test:rust:
+    desc: Rust テスト実行
+    cmds:
+      - cargo test --manifest-path src-tauri/Cargo.toml
+
+  test:front:
+    desc: フロントエンドテスト実行
+    cmds:
+      - pnpm test
+
+  fmt:
+    desc: 全フォーマット実行（Rust + フロントエンド）
+    cmds:
+      - task: fmt:rust
+      - task: fmt:front
+
+  fmt:check:
+    desc: 全フォーマットチェック（修正なし）
+    cmds:
+      - task: fmt:rust:check
+      - task: fmt:front:check
+
+  fmt:rust:
+    desc: cargo fmt でフォーマット実行
+    cmds:
+      - cargo fmt --manifest-path src-tauri/Cargo.toml
+
+  fmt:rust:check:
+    desc: cargo fmt でフォーマットチェック（修正なし）
+    cmds:
+      - cargo fmt --manifest-path src-tauri/Cargo.toml -- --check
+
+  fmt:front:
+    desc: Biome でフォーマット実行
+    cmds:
+      - pnpm biome format --write src/
+
+  fmt:front:check:
+    desc: Biome でフォーマットチェック（修正なし）
+    cmds:
+      - pnpm biome format src/
+
+  lint:
+    desc: Biome でリント・フォーマットチェック
+    cmds:
+      - pnpm biome check src/
+
+  lint:fix:
+    desc: Biome でリント・フォーマット自動修正
+    cmds:
+      - pnpm biome check --write src/
+
+  clippy:
+    desc: Rust の静的解析
+    cmds:
+      - cargo clippy --manifest-path src-tauri/Cargo.toml -- -D warnings
+
+  check:
+    desc: 全チェック実行（lint + clippy + test）
+    cmds:
+      - task: lint
+      - task: clippy
+      - task: test
+
+  designs:link:
+    desc: デザインモックにページ遷移スクリプトを注入して designs-linked へ出力
+    cmds:
+      - connect --out-dir ./designs-linked ./designs
+
+  designs:clean:
+    desc: designs-linked から注入済みスクリプトを除去
+    cmds:
+      - connect --clean --out-dir ./designs-linked ./designs
