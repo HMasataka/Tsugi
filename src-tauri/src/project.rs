@@ -1,4 +1,5 @@
 use crate::session::CliType;
+use crate::util;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Mutex;
@@ -84,11 +85,11 @@ impl ProjectStore {
         }
 
         let project = Project {
-            id: generate_id(),
+            id: util::generate_id(),
             name,
             path: path.clone(),
             cli_type,
-            last_opened_at: now_millis(),
+            last_opened_at: util::now_millis(),
         };
 
         lock.projects.push(project.clone());
@@ -143,7 +144,7 @@ impl ProjectStore {
             0,
             RecentDirectory {
                 path: path.to_string(),
-                last_used_at: now_millis(),
+                last_used_at: util::now_millis(),
             },
         );
 
@@ -157,29 +158,13 @@ impl ProjectStore {
     }
 }
 
-fn now_millis() -> i64 {
-    std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis() as i64
-}
-
-fn generate_id() -> String {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let t = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_nanos();
-    format!("{:032x}", t)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
 
     fn temp_store() -> ProjectStore {
-        let dir = std::env::temp_dir().join(format!("tsugi-test-{}", generate_id()));
+        let dir = std::env::temp_dir().join(format!("tsugi-test-{}", util::generate_id()));
         fs::create_dir_all(&dir).unwrap();
         ProjectStore {
             data: Mutex::new(ProjectData::default()),

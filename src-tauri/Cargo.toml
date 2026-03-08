@@ -26,3 +26,4 @@ tauri-plugin-log = "2"
 tauri-plugin-dialog = "2"
 tokio = { version = "1", features = ["process", "io-util", "sync", "rt", "macros"] }
 dirs = "6"
+rusqlite = { version = "0.31", features = ["bundled"] }

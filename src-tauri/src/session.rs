@@ -25,6 +25,8 @@ pub struct SessionState {
     pub cwd: PathBuf,
     pub cli_type: CliType,
     pub status: SessionStatus,
+    #[serde(skip)]
+    pub execution_id: Option<String>,
 }
 
 pub struct SessionEntry {
@@ -99,6 +101,7 @@ mod tests {
             cwd: PathBuf::from("/tmp/test"),
             cli_type: CliType::ClaudeCode,
             status: SessionStatus::Idle,
+            execution_id: None,
         };
         let json = serde_json::to_value(&state).unwrap();
         assert_eq!(json["sessionId"], "test-123");
