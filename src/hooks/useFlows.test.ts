@@ -16,7 +16,7 @@ function makeFlow(overrides: Partial<Flow> = {}): Flow {
     id: "flow-1",
     name: "Test Flow",
     description: "desc",
-    steps: [{ name: "Step 1", prompt: "do something", timeoutSecs: null }],
+    steps: [{ name: "Step 1", stepType: "prompt", prompt: "do something", timeoutSecs: null }],
     createdAt: 1000,
     updatedAt: 2000,
     ...overrides,
@@ -87,7 +87,7 @@ describe("useFlows", () => {
       let returnedFlow: Flow | undefined;
       await act(async () => {
         returnedFlow = await result.current.createFlow("New", "desc", [
-          { name: "S1", prompt: "p", timeoutSecs: null },
+          { name: "S1", stepType: "prompt", prompt: "p", timeoutSecs: null },
         ]);
       });
 
@@ -95,7 +95,7 @@ describe("useFlows", () => {
       expect(mockInvoke).toHaveBeenCalledWith("create_flow", {
         name: "New",
         description: "desc",
-        steps: [{ name: "S1", prompt: "p", timeoutSecs: null }],
+        steps: [{ name: "S1", stepType: "prompt", prompt: "p", timeoutSecs: null }],
       });
       expect(result.current.flows).toEqual([created]);
     });

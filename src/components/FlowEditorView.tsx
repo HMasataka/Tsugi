@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
-import type { Flow, FlowStep, CliType } from "../types";
+import type { Flow, FlowStep, FlowStepType, CliType } from "../types";
 
 interface FlowEditorViewProps {
   flowId: string;
@@ -12,6 +12,7 @@ interface FlowEditorViewProps {
 function createEmptyStep(index: number): FlowStep {
   return {
     name: `Step ${index}`,
+    stepType: "prompt",
     prompt: "",
     timeoutSecs: null,
   };
@@ -148,13 +149,23 @@ export function FlowEditorView({ flowId, onBack, onRunFlow }: FlowEditorViewProp
   );
 
   const handleUpdateStep = useCallback(
-    (index: number, field: keyof FlowStep, value: string | number | null) => {
+    (index: number, field: keyof FlowStep, value: string | number | null | FlowStep[] | undefined) => {
       setSteps(
         steps.map((s, i) => (i === index ? { ...s, [field]: value } : s)),
       );
     },
     [steps],
   );
+
+  const stepTypeLabel = (t: FlowStepType): string => {
+    switch (t) {
+      case "prompt": return "Prompt";
+      case "condition": return "Condition";
+      case "loop": return "Loop";
+      case "validation": return "Validation";
+      case "approval": return "Approval";
+    }
+  };
 
   if (loadError) {
     return (
@@ -230,7 +241,7 @@ export function FlowEditorView({ flowId, onBack, onRunFlow }: FlowEditorViewProp
               {steps.map((step, index) => (
                 <div
                   key={index}
-                  className={`flow-step-item flow-step-type-prompt${index === selectedStepIndex ? " selected" : ""}`}
+                  className={`flow-step-item flow-step-type-${step.stepType}${index === selectedStepIndex ? " selected" : ""}`}
                   onClick={() => setSelectedStepIndex(index)}
                 >
                   <div className="flow-step-connector">
@@ -240,7 +251,7 @@ export function FlowEditorView({ flowId, onBack, onRunFlow }: FlowEditorViewProp
                   <div className="flow-step-card">
                     <div className="flow-step-card-header">
                       <span className="flow-step-number">{index + 1}</span>
-                      <span className="flow-step-label">Step:</span>
+                      <span className="flow-step-label">{stepTypeLabel(step.stepType)}:</span>
                       <span className="flow-step-name">{step.name}</span>
                     </div>
                     <div className="flow-step-preview">
@@ -312,16 +323,123 @@ export function FlowEditorView({ flowId, onBack, onRunFlow }: FlowEditorViewProp
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Prompt</label>
-                  <textarea
-                    className="prompt-textarea"
-                    rows={8}
-                    value={selectedStep.prompt}
+                  <label className="form-label">Type</label>
+                  <select
+                    className="form-value"
+                    value={selectedStep.stepType}
                     onChange={(e) =>
-                      handleUpdateStep(selectedStepIndex, "prompt", e.target.value)
+                      handleUpdateStep(selectedStepIndex, "stepType", e.target.value)
                     }
-                  />
+                  >
+                    <option value="prompt">Prompt</option>
+                    <option value="condition">Condition</option>
+                    <option value="loop">Loop</option>
+                    <option value="validation">Validation</option>
+                    <option value="approval">Approval</option>
+                  </select>
                 </div>
+
+                {(selectedStep.stepType) !== "approval" && (
+                  <div className="form-group">
+                    <label className="form-label">Prompt</label>
+                    <textarea
+                      className="prompt-textarea"
+                      rows={8}
+                      value={selectedStep.prompt}
+                      onChange={(e) =>
+                        handleUpdateStep(selectedStepIndex, "prompt", e.target.value)
+                      }
+                    />
+                  </div>
+                )}
+
+                {(selectedStep.stepType) === "condition" && (
+                  <div className="form-group">
+                    <label className="form-label">Condition Prompt</label>
+                    <textarea
+                      className="prompt-textarea"
+                      rows={4}
+                      value={selectedStep.conditionPrompt ?? ""}
+                      onChange={(e) =>
+                        handleUpdateStep(selectedStepIndex, "conditionPrompt", e.target.value)
+                      }
+                      placeholder="Ask a yes/no question about the previous output"
+                    />
+                  </div>
+                )}
+
+                {(selectedStep.stepType) === "loop" && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">Loop Condition Prompt</label>
+                      <textarea
+                        className="prompt-textarea"
+                        rows={4}
+                        value={selectedStep.loopConditionPrompt ?? ""}
+                        onChange={(e) =>
+                          handleUpdateStep(selectedStepIndex, "loopConditionPrompt", e.target.value)
+                        }
+                        placeholder="Condition to continue looping (yes = continue)"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Max Iterations</label>
+                      <input
+                        type="number"
+                        className="form-value"
+                        value={selectedStep.maxIterations ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = parseInt(val, 10);
+                          handleUpdateStep(
+                            selectedStepIndex,
+                            "maxIterations",
+                            val === "" || isNaN(parsed) ? null : parsed,
+                          );
+                        }}
+                        placeholder="10"
+                        style={{ cursor: "text", width: 120 }}
+                      />
+                    </div>
+                  </>
+                )}
+
+                {(selectedStep.stepType) === "validation" && (
+                  <>
+                    <div className="form-group">
+                      <label className="form-label">Validation Pattern (regex)</label>
+                      <input
+                        type="text"
+                        className="form-value"
+                        value={selectedStep.validationPattern ?? ""}
+                        onChange={(e) =>
+                          handleUpdateStep(selectedStepIndex, "validationPattern", e.target.value)
+                        }
+                        placeholder="e.g. ^\\{.*\\}$"
+                        style={{ cursor: "text" }}
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label className="form-label">Max Retries</label>
+                      <input
+                        type="number"
+                        className="form-value"
+                        value={selectedStep.maxRetries ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          const parsed = parseInt(val, 10);
+                          handleUpdateStep(
+                            selectedStepIndex,
+                            "maxRetries",
+                            val === "" || isNaN(parsed) ? null : parsed,
+                          );
+                        }}
+                        placeholder="3"
+                        style={{ cursor: "text", width: 120 }}
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Timeout</label>

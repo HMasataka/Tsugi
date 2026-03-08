@@ -108,10 +108,44 @@ export interface RecentDirectory {
 export type PageId = "sessions" | "projects" | "history" | "flows";
 
 // Flow types
+export type FlowStepType = "prompt" | "condition" | "loop" | "validation" | "approval";
+
 export interface FlowStep {
   name: string;
+  stepType: FlowStepType;
   prompt: string;
   timeoutSecs: number | null;
+
+  // condition
+  conditionPrompt?: string;
+  thenSteps?: FlowStep[];
+  elseSteps?: FlowStep[];
+
+  // loop
+  loopConditionPrompt?: string;
+  maxIterations?: number;
+
+  // validation
+  validationPattern?: string;
+  maxRetries?: number;
+  onFailSteps?: FlowStep[];
+}
+
+// Flow execution event types
+export type FlowExecutionEventType =
+  | "stepStarted"
+  | "stepCompleted"
+  | "stepFailed"
+  | "conditionEvaluated"
+  | "loopIteration"
+  | "validationResult"
+  | "approvalRequired"
+  | "flowCompleted"
+  | "flowFailed";
+
+export interface FlowExecutionEvent {
+  event: FlowExecutionEventType;
+  data: Record<string, unknown>;
 }
 
 export interface Flow {

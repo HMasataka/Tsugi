@@ -10,6 +10,7 @@ import { FlowEditorView } from "./components/FlowEditorView";
 import { StatusBar } from "./components/StatusBar";
 import { useSessionManager } from "./hooks/useSessionManager";
 import type { PageId, CliType, Flow } from "./types";
+import { useFlows } from "./hooks/useFlows";
 
 function App() {
   const [activePage, setActivePage] = useState<PageId>("sessions");
@@ -41,6 +42,8 @@ function App() {
     confirmItem,
     clearConfirming,
   } = useSessionManager();
+
+  const { executeFlow, approveStep, rejectStep } = useFlows();
 
   const abortRef = useRef(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -162,19 +165,46 @@ function App() {
 
   const handleRunFlow = useCallback(
     (flow: Flow, cwd: string, cliType: CliType) => {
-      setActivePage("sessions");
-      void startSession(cwd, cliType).then((sessionId) => {
-        if (sessionId) {
-          const items = flow.steps.map((step) => ({
-            prompt: step.prompt,
-            timeoutMs: step.timeoutSecs != null ? step.timeoutSecs * 1000 : null,
-          }));
-          addItems(sessionId, items);
-          toggleAutoRun(sessionId);
-        }
-      });
+      const hasControlFlow = flow.steps.some(
+        (s) => s.stepType !== "prompt",
+      );
+
+      if (hasControlFlow) {
+        let resolvedExecutionId: string | null = null;
+
+        const executionPromise = executeFlow(flow.id, cwd, cliType, null, (event) => {
+          if (event.event === "approvalRequired" && resolvedExecutionId) {
+            const approved = window.confirm(
+              `Step "${String(event.data.stepName)}" requires approval. Approve?`,
+            );
+            void (approved
+              ? approveStep(resolvedExecutionId)
+              : rejectStep(resolvedExecutionId));
+          } else if (event.event === "flowFailed") {
+            window.alert(`Flow failed: ${String(event.data.error)}`);
+          } else if (event.event === "flowCompleted") {
+            window.alert("Flow completed successfully.");
+          }
+        });
+
+        void executionPromise.then((execId) => {
+          resolvedExecutionId = execId;
+        });
+      } else {
+        setActivePage("sessions");
+        void startSession(cwd, cliType).then((sessionId) => {
+          if (sessionId) {
+            const items = flow.steps.map((step) => ({
+              prompt: step.prompt,
+              timeoutMs: step.timeoutSecs != null ? step.timeoutSecs * 1000 : null,
+            }));
+            addItems(sessionId, items);
+            toggleAutoRun(sessionId);
+          }
+        });
+      }
     },
-    [startSession, addItems, toggleAutoRun],
+    [startSession, addItems, toggleAutoRun, executeFlow, approveStep, rejectStep],
   );
 
   // Auto-execute queue items for the active session
