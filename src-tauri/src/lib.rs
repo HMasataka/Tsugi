@@ -1,8 +1,12 @@
 mod cli_adapter;
 mod commands;
+mod db;
+mod history;
 mod project;
 mod session;
+mod util;
 
+use db::Database;
 use project::ProjectStore;
 use session::SessionManager;
 use tauri::Manager;
@@ -24,6 +28,12 @@ pub fn run() {
             commands::unregister_project,
             commands::list_projects,
             commands::list_recent_dirs,
+            commands::list_executions,
+            commands::get_execution_detail,
+            commands::get_step_outputs,
+            commands::export_execution,
+            commands::delete_execution,
+            commands::write_export_file,
         ])
         .setup(|app| {
             let app_handle = app.handle().clone();
@@ -41,6 +51,16 @@ pub fn run() {
             if let Err(e) = project_store.load_blocking() {
                 log::warn!("Failed to load project data: {}", e);
             }
+
+            // Initialize SQLite database
+            let db_path = dirs::config_dir()
+                .unwrap_or_else(|| std::path::PathBuf::from("."))
+                .join("tsugi")
+                .join("tsugi.db");
+
+            let database = Database::open(db_path)
+                .map_err(|e| format!("Failed to initialize database: {}", e))?;
+            app_handle.manage(database);
 
             Ok(())
         })

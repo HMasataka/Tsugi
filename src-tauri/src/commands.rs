@@ -1,8 +1,16 @@
 use crate::cli_adapter::{CliAdapter, ClaudeCodeAdapter};
+use crate::db::Database;
+use crate::history::{
+    self, Execution, ExecutionDetail, ExecutionStep, ExecutionSummary, HistoryFilter, StepOutput,
+};
 use crate::project::{Project, ProjectStore, RecentDirectory};
-use crate::session::{CliType, SessionEntry, SessionInfo, SessionManager, SessionState, SessionStatus};
+use crate::session::{
+    CliType, SessionEntry, SessionInfo, SessionManager, SessionState, SessionStatus,
+};
+use crate::util;
 use serde::Serialize;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicI64, Ordering};
 use tauri::ipc::Channel;
 use tokio::io::{AsyncBufReadExt, BufReader};
 
@@ -22,6 +30,7 @@ pub async fn start_session(
     resume_session_id: Option<String>,
     state: tauri::State<'_, SessionManager>,
     project_store: tauri::State<'_, ProjectStore>,
+    db: tauri::State<'_, Database>,
 ) -> Result<String, String> {
     let cli = match cli_type.as_str() {
         "claude-code" => CliType::ClaudeCode,
@@ -36,11 +45,28 @@ pub async fn start_session(
 
     let id = state.generate_id().await;
 
+    // Persist execution record
+    let execution_id = util::generate_id();
+    let execution = Execution {
+        id: execution_id.clone(),
+        cwd: cwd.clone(),
+        cli_type: cli_type.clone(),
+        status: "running".to_string(),
+        started_at: util::now_millis(),
+        finished_at: None,
+        total_input_tokens: 0,
+        total_output_tokens: 0,
+    };
+    if let Err(e) = history::create_execution(&db, &execution) {
+        log::warn!("Failed to create execution record: {}", e);
+    }
+
     let session_state = SessionState {
         session_id: resume_session_id,
         cwd: path,
         cli_type: cli,
         status: SessionStatus::Idle,
+        execution_id: Some(execution_id),
     };
 
     let entry = SessionEntry {
@@ -66,8 +92,9 @@ pub async fn send_prompt(
     prompt: String,
     on_event: Channel<SessionEvent>,
     state: tauri::State<'_, SessionManager>,
+    db: tauri::State<'_, Database>,
 ) -> Result<(), String> {
-    let (cwd, resume_id, cli_type) = {
+    let (cwd, resume_id, cli_type, execution_id) = {
         let mut sessions = state.sessions.lock().await;
         let entry = sessions
             .get_mut(&session_id)
@@ -80,8 +107,30 @@ pub async fn send_prompt(
             entry.state.cwd.clone(),
             entry.state.session_id.clone(),
             entry.state.cli_type.clone(),
+            entry.state.execution_id.clone(),
         )
     };
+
+    // Persist step record
+    let step_id = util::generate_id();
+    if let Some(ref exec_id) = execution_id {
+        let step_order = history::get_step_count(&db, exec_id).unwrap_or(0);
+        let step = ExecutionStep {
+            id: step_id.clone(),
+            execution_id: exec_id.clone(),
+            step_order,
+            prompt: prompt.clone(),
+            status: "running".to_string(),
+            started_at: util::now_millis(),
+            finished_at: None,
+            exit_code: None,
+            input_tokens: 0,
+            output_tokens: 0,
+        };
+        if let Err(e) = history::create_step(&db, &step) {
+            log::warn!("Failed to create step record: {}", e);
+        }
+    }
 
     let adapter: Box<dyn CliAdapter> = match cli_type {
         CliType::ClaudeCode => Box::new(ClaudeCodeAdapter),
@@ -138,6 +187,9 @@ pub async fn send_prompt(
 
     let session_id_for_update = session_id.clone();
     let mut reader = BufReader::new(stdout).lines();
+    let output_seq = AtomicI64::new(0);
+    let mut input_tokens: i64 = 0;
+    let mut output_tokens: i64 = 0;
 
     while let Ok(Some(line)) = reader.next_line().await {
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&line) {
@@ -153,7 +205,20 @@ pub async fn send_prompt(
                     break;
                 }
             }
+
+            let (inp, out) = extract_token_usage(&json);
+            input_tokens += inp;
+            output_tokens += out;
         }
+
+        // Persist output line
+        if execution_id.is_some() {
+            let seq = output_seq.fetch_add(1, Ordering::Relaxed);
+            if let Err(e) = history::append_output(&db, &step_id, seq, &line) {
+                log::warn!("Failed to append output: {}", e);
+            }
+        }
+
         if on_event
             .send(SessionEvent::Output { raw: line })
             .is_err()
@@ -174,6 +239,17 @@ pub async fn send_prompt(
             None
         }
     };
+
+    // Finish the step in DB
+    if execution_id.is_some() {
+        let step_status = match exit_code {
+            Some(0) => "completed",
+            _ => "failed",
+        };
+        if let Err(e) = history::finish_step(&db, &step_id, step_status, exit_code, input_tokens, output_tokens) {
+            log::warn!("Failed to finish step record: {}", e);
+        }
+    }
 
     if on_event
         .send(SessionEvent::ProcessExited { code: exit_code })
@@ -202,6 +278,15 @@ fn extract_session_id(json: &serde_json::Value) -> Option<String> {
     None
 }
 
+fn extract_token_usage(json: &serde_json::Value) -> (i64, i64) {
+    if let Some(usage) = json.get("usage") {
+        let input = usage.get("input_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+        let output = usage.get("output_tokens").and_then(|v| v.as_i64()).unwrap_or(0);
+        return (input, output);
+    }
+    (0, 0)
+}
+
 #[tauri::command]
 pub async fn abort_prompt(
     session_id: String,
@@ -225,11 +310,19 @@ pub async fn abort_prompt(
 pub async fn stop_session(
     session_id: String,
     state: tauri::State<'_, SessionManager>,
+    db: tauri::State<'_, Database>,
 ) -> Result<(), String> {
     let mut sessions = state.sessions.lock().await;
     let entry = sessions
         .remove(&session_id)
         .ok_or_else(|| format!("Session not found: {}", session_id))?;
+
+    // Finish the execution in DB
+    if let Some(ref exec_id) = entry.state.execution_id {
+        if let Err(e) = history::finish_execution(&db, exec_id, "completed") {
+            log::warn!("Failed to finish execution record: {}", e);
+        }
+    }
 
     if let Some(mut child) = entry.child {
         let _ = child.kill().await;
@@ -241,14 +334,19 @@ pub async fn stop_session(
 #[tauri::command]
 pub async fn stop_all_sessions(
     state: tauri::State<'_, SessionManager>,
+    db: tauri::State<'_, Database>,
 ) -> Result<(), String> {
     let mut sessions = state.sessions.lock().await;
-    for entry in sessions.values_mut() {
-        if let Some(ref mut child) = entry.child {
+    for (_id, entry) in sessions.drain() {
+        if let Some(mut child) = entry.child {
             let _ = child.kill().await;
         }
-        entry.child = None;
-        entry.state.status = SessionStatus::Terminated;
+
+        if let Some(ref exec_id) = entry.state.execution_id {
+            if let Err(e) = history::finish_execution(&db, exec_id, "completed") {
+                log::warn!("Failed to finish execution record: {}", e);
+            }
+        }
     }
     Ok(())
 }
@@ -263,10 +361,7 @@ pub async fn list_sessions(
     let infos: Vec<SessionInfo> = sessions
         .iter()
         .map(|(id, entry)| {
-            let pid = entry
-                .child
-                .as_ref()
-                .and_then(|c| c.id());
+            let pid = entry.child.as_ref().and_then(|c| c.id());
             SessionInfo {
                 id: id.clone(),
                 pid,
@@ -316,6 +411,54 @@ pub async fn list_recent_dirs(
     store: tauri::State<'_, ProjectStore>,
 ) -> Result<Vec<RecentDirectory>, String> {
     store.list_recent_dirs()
+}
+
+// History commands
+
+#[tauri::command]
+pub async fn list_executions(
+    filter: HistoryFilter,
+    db: tauri::State<'_, Database>,
+) -> Result<Vec<ExecutionSummary>, String> {
+    history::list_executions(&db, &filter)
+}
+
+#[tauri::command]
+pub async fn get_execution_detail(
+    execution_id: String,
+    db: tauri::State<'_, Database>,
+) -> Result<ExecutionDetail, String> {
+    history::get_execution_detail(&db, &execution_id)
+}
+
+#[tauri::command]
+pub async fn get_step_outputs(
+    step_id: String,
+    db: tauri::State<'_, Database>,
+) -> Result<Vec<StepOutput>, String> {
+    history::get_step_outputs(&db, &step_id)
+}
+
+#[tauri::command]
+pub async fn export_execution(
+    execution_id: String,
+    db: tauri::State<'_, Database>,
+) -> Result<String, String> {
+    history::export_execution(&db, &execution_id)
+}
+
+#[tauri::command]
+pub async fn delete_execution(
+    execution_id: String,
+    db: tauri::State<'_, Database>,
+) -> Result<(), String> {
+    history::delete_execution(&db, &execution_id)
+}
+
+#[tauri::command]
+pub async fn write_export_file(path: String, content: String) -> Result<(), String> {
+    std::fs::write(&path, &content)
+        .map_err(|e| format!("Failed to write export file: {}", e))
 }
 
 #[cfg(test)]
