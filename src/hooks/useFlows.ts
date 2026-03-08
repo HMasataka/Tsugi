@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import type { Flow, FlowStep } from "../types";
+import { invoke, Channel } from "@tauri-apps/api/core";
+import type { Flow, FlowStep, FlowExecutionEvent, CliType } from "../types";
 
 export function useFlows() {
   const [flows, setFlows] = useState<Flow[]>([]);
@@ -66,6 +66,35 @@ export function useFlows() {
     [],
   );
 
+  const executeFlow = useCallback(
+    async (
+      flowId: string,
+      cwd: string,
+      cliType: CliType,
+      sessionId: string | null,
+      onEvent: (event: FlowExecutionEvent) => void,
+    ) => {
+      const channel = new Channel<FlowExecutionEvent>();
+      channel.onmessage = onEvent;
+      return invoke<string>("execute_flow", {
+        flowId,
+        cwd,
+        cliType,
+        sessionId,
+        onEvent: channel,
+      });
+    },
+    [],
+  );
+
+  const approveStep = useCallback(async (executionId: string) => {
+    await invoke("approve_flow_step", { executionId });
+  }, []);
+
+  const rejectStep = useCallback(async (executionId: string) => {
+    await invoke("reject_flow_step", { executionId });
+  }, []);
+
   return {
     flows,
     loading,
@@ -76,5 +105,8 @@ export function useFlows() {
     deleteFlow,
     importFlow,
     exportFlow,
+    executeFlow,
+    approveStep,
+    rejectStep,
   };
 }

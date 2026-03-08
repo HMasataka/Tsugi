@@ -68,6 +68,7 @@ export function FlowsView({ onEditFlow, onRunFlow }: FlowsViewProps) {
       setOperationError(null);
       const defaultStep: FlowStep = {
         name: "Step 1",
+        stepType: "prompt",
         prompt: "",
         timeoutSecs: null,
       };
