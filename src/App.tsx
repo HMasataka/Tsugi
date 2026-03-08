@@ -4,6 +4,7 @@ import { Sidebar } from "./components/Sidebar";
 import { SessionView } from "./components/SessionView";
 import { SessionTabBar } from "./components/SessionTabBar";
 import { ProjectsView } from "./components/ProjectsView";
+import { HistoryView } from "./components/HistoryView";
 import { StatusBar } from "./components/StatusBar";
 import { useSessionManager } from "./hooks/useSessionManager";
 import type { PageId, CliType } from "./types";
@@ -250,6 +251,18 @@ function App() {
           )}
           {activePage === "projects" && (
             <ProjectsView onOpenSession={handleOpenProjectSession} />
+          )}
+          {activePage === "history" && (
+            <HistoryView
+              onRerun={(cwd, cliType, prompts) => {
+                setActivePage("sessions");
+                void startSession(cwd, cliType).then((sessionId) => {
+                  if (sessionId) {
+                    addItems(sessionId, prompts);
+                  }
+                });
+              }}
+            />
           )}
         </div>
       </div>

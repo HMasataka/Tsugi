@@ -100,4 +100,43 @@ export interface RecentDirectory {
   lastUsedAt: number;
 }
 
-export type PageId = "sessions" | "projects";
+export type PageId = "sessions" | "projects" | "history";
+
+export interface ExecutionSummary {
+  id: string;
+  cwd: string;
+  cliType: CliType;
+  status: "completed" | "failed" | "running";
+  startedAt: number;
+  finishedAt: number | null;
+  stepCount: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+}
+
+export interface ExecutionDetail {
+  execution: ExecutionSummary;
+  steps: ExecutionStepInfo[];
+}
+
+export interface ExecutionStepInfo {
+  id: string;
+  stepOrder: number;
+  prompt: string;
+  status: string;
+  startedAt: number;
+  finishedAt: number | null;
+  exitCode: number | null;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+export interface HistoryFilter {
+  cwd?: string;
+  status?: string;
+  keyword?: string;
+  dateFrom?: number;
+  dateTo?: number;
+  limit: number;
+  offset: number;
+}
