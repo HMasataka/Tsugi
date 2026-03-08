@@ -12,17 +12,18 @@ import type {
   QueueState,
   QueueItemStatus,
   QueueItem,
+  QueueItemInput,
   SessionEntry,
   SessionManagerState,
   TokenUsage,
 } from "../types";
 
-function createQueueItem(prompt: string): QueueItem {
+function createQueueItem(prompt: string, timeoutMs: number | null = null): QueueItem {
   return {
     id: crypto.randomUUID(),
     prompt,
     status: "pending",
-    timeoutMs: null,
+    timeoutMs,
   };
 }
 
@@ -77,7 +78,7 @@ type SessionManagerAction =
   | { type: "SESSION_SET_IDLE"; sessionId: string }
   | { type: "SESSION_SET_TERMINATED"; sessionId: string }
   | { type: "QUEUE_ADD_ITEM"; sessionId: string; prompt: string }
-  | { type: "QUEUE_ADD_ITEMS"; sessionId: string; prompts: string[] }
+  | { type: "QUEUE_ADD_ITEMS"; sessionId: string; items: QueueItemInput[] }
   | { type: "QUEUE_REMOVE_ITEM"; sessionId: string; itemId: string }
   | { type: "QUEUE_EDIT_ITEM"; sessionId: string; itemId: string; prompt: string }
   | { type: "QUEUE_REORDER"; sessionId: string; fromIndex: number; toIndex: number }
@@ -198,7 +199,7 @@ function sessionManagerReducer(
         sessions: updateSessionQueue(state.sessions, action.sessionId, (q) =>
           updateQueueItems(q, (items) => [
             ...items,
-            ...action.prompts.map((p) => createQueueItem(p)),
+            ...action.items.map((item) => createQueueItem(item.prompt, item.timeoutMs)),
           ]),
         ),
       };
@@ -614,8 +615,8 @@ export function useSessionManager() {
     dispatch({ type: "QUEUE_ADD_ITEM", sessionId, prompt });
   }, []);
 
-  const addItems = useCallback((sessionId: string, prompts: string[]) => {
-    dispatch({ type: "QUEUE_ADD_ITEMS", sessionId, prompts });
+  const addItems = useCallback((sessionId: string, items: QueueItemInput[]) => {
+    dispatch({ type: "QUEUE_ADD_ITEMS", sessionId, items });
   }, []);
 
   const removeItem = useCallback((sessionId: string, itemId: string) => {

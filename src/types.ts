@@ -56,6 +56,11 @@ export interface QueueItem {
   timeoutMs: number | null;
 }
 
+export interface QueueItemInput {
+  prompt: string;
+  timeoutMs: number | null;
+}
+
 export interface QueueState {
   items: QueueItem[];
   autoRun: boolean;
@@ -100,7 +105,23 @@ export interface RecentDirectory {
   lastUsedAt: number;
 }
 
-export type PageId = "sessions" | "projects" | "history";
+export type PageId = "sessions" | "projects" | "history" | "flows";
+
+// Flow types
+export interface FlowStep {
+  name: string;
+  prompt: string;
+  timeoutSecs: number | null;
+}
+
+export interface Flow {
+  id: string;
+  name: string;
+  description: string;
+  steps: FlowStep[];
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface ExecutionSummary {
   id: string;

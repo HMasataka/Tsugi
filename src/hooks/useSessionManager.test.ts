@@ -210,10 +210,28 @@ describe("sessionManagerReducer", () => {
       const state = dispatch(stateWithSession(), {
         type: "QUEUE_ADD_ITEMS",
         sessionId: "session-1",
-        prompts: ["A", "B", "C"],
+        items: [
+          { prompt: "A", timeoutMs: null },
+          { prompt: "B", timeoutMs: null },
+          { prompt: "C", timeoutMs: null },
+        ],
       });
 
       expect(state.sessions[0].queueState.items).toHaveLength(3);
+    });
+
+    it("QUEUE_ADD_ITEMS preserves timeoutMs from input", () => {
+      const state = dispatch(stateWithSession(), {
+        type: "QUEUE_ADD_ITEMS",
+        sessionId: "session-1",
+        items: [
+          { prompt: "With timeout", timeoutMs: 60000 },
+          { prompt: "Without timeout", timeoutMs: null },
+        ],
+      });
+
+      expect(state.sessions[0].queueState.items[0].timeoutMs).toBe(60000);
+      expect(state.sessions[0].queueState.items[1].timeoutMs).toBeNull();
     });
 
     it("QUEUE_REMOVE_ITEM removes an item by id", () => {
@@ -301,7 +319,11 @@ describe("sessionManagerReducer", () => {
       let state = dispatch(stateWithSession(), {
         type: "QUEUE_ADD_ITEMS",
         sessionId: "session-1",
-        prompts: ["A", "B", "C"],
+        items: [
+          { prompt: "A", timeoutMs: null },
+          { prompt: "B", timeoutMs: null },
+          { prompt: "C", timeoutMs: null },
+        ],
       });
       state = dispatch(state, {
         type: "QUEUE_REORDER",
@@ -318,7 +340,10 @@ describe("sessionManagerReducer", () => {
       let state = dispatch(stateWithSession(), {
         type: "QUEUE_ADD_ITEMS",
         sessionId: "session-1",
-        prompts: ["Done", "Pending"],
+        items: [
+          { prompt: "Done", timeoutMs: null },
+          { prompt: "Pending", timeoutMs: null },
+        ],
       });
       const doneId = state.sessions[0].queueState.items[0].id;
       state = dispatch(state, {
