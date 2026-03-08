@@ -15,6 +15,7 @@ impl CliAdapter for ClaudeCodeAdapter {
             .arg(prompt)
             .arg("--output-format")
             .arg("stream-json")
+            .arg("--verbose")
             .current_dir(cwd)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -40,7 +41,7 @@ mod tests {
         let as_std = cmd.as_std();
 
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
-        assert_eq!(args, vec!["-p", "hello", "--output-format", "stream-json"]);
+        assert_eq!(args, vec!["-p", "hello", "--output-format", "stream-json", "--verbose"]);
         assert_eq!(as_std.get_current_dir(), Some(Path::new("/tmp/test")));
     }
 
@@ -54,7 +55,7 @@ mod tests {
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
         assert_eq!(
             args,
-            vec!["-p", "next prompt", "--output-format", "stream-json", "-r", "sess-123"]
+            vec!["-p", "next prompt", "--output-format", "stream-json", "--verbose", "-r", "sess-123"]
         );
     }
 }
