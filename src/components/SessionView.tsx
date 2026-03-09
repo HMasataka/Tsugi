@@ -8,7 +8,8 @@ import { QueuePanel } from "./QueuePanel";
 interface SessionViewProps {
   state: SessionState | null;
   queueState: QueueState | null;
-  onStartSession: (cwd: string, cliType: CliType, resumeSessionId?: string) => Promise<void>;
+  defaultCliArgs: string;
+  onStartSession: (cwd: string, cliType: CliType, resumeSessionId?: string, extraArgs?: string) => Promise<void>;
   onSendPrompt: (prompt: string) => void;
   onStopSession: () => Promise<void>;
   onAddItem: (prompt: string) => void;
@@ -40,6 +41,7 @@ function statusBadgeLabel(status: SessionState["status"]): string {
 export function SessionView({
   state,
   queueState,
+  defaultCliArgs,
   onStartSession,
   onSendPrompt,
   onStopSession,
@@ -61,6 +63,7 @@ export function SessionView({
   const [selectedCwd, setSelectedCwd] = useState<string | null>(null);
   const [selectedCli, setSelectedCli] = useState<CliType>("claude-code");
   const [resumeId, setResumeId] = useState("");
+  const [cliArgs, setCliArgs] = useState(defaultCliArgs);
 
   const handleSelectDirectory = useCallback(async () => {
     const selected = await open({ directory: true });
@@ -71,8 +74,8 @@ export function SessionView({
 
   const handleStart = useCallback(async () => {
     if (!selectedCwd) return;
-    await onStartSession(selectedCwd, selectedCli, resumeId || undefined);
-  }, [selectedCwd, selectedCli, resumeId, onStartSession]);
+    await onStartSession(selectedCwd, selectedCli, resumeId || undefined, cliArgs || undefined);
+  }, [selectedCwd, selectedCli, resumeId, cliArgs, onStartSession]);
 
   // Show setup form when no state or terminated
   if (!state || state.status === "terminated") {
@@ -111,6 +114,17 @@ export function SessionView({
               placeholder="e.g., abc-123"
               value={resumeId}
               onChange={(e) => setResumeId(e.target.value)}
+              style={{ cursor: "text" }}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">CLI Arguments (optional)</label>
+            <input
+              className="form-value"
+              type="text"
+              placeholder="e.g., --dangerously-skip-permissions --model sonnet"
+              value={cliArgs}
+              onChange={(e) => setCliArgs(e.target.value)}
               style={{ cursor: "text" }}
             />
           </div>

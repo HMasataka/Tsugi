@@ -478,11 +478,12 @@ export function useSessionManager() {
   const activeSession = state.sessions.find((s) => s.id === state.activeSessionId) ?? null;
 
   const startSession = useCallback(
-    async (cwd: string, cliType: CliType, resumeSessionId?: string) => {
+    async (cwd: string, cliType: CliType, resumeSessionId?: string, extraArgs?: string) => {
       const id: string = await invoke("start_session", {
         cwd,
         cliType,
         resumeSessionId: resumeSessionId ?? null,
+        extraArgs: extraArgs ?? "",
       });
       dispatch({ type: "ADD_SESSION", id, cwd, cliType });
       return id;

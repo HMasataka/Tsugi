@@ -217,5 +217,6 @@ export interface Settings {
   notifyOnError: boolean;
   notifyOnApproval: boolean;
   autoWorktreeForFlows: boolean;
+  defaultCliArgs: string;
   keyboardShortcuts: KeyboardShortcuts;
 }

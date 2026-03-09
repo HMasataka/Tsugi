@@ -103,6 +103,23 @@ export function SettingsView({ settings, onSave }: SettingsViewProps) {
                   </select>
                 </div>
               </div>
+
+              <div className="settings-item">
+                <div className="settings-item-info">
+                  <div className="settings-item-label">Default CLI Arguments</div>
+                  <div className="settings-item-hint">
+                    Arguments applied to every new session by default
+                  </div>
+                </div>
+                <div className="settings-item-control">
+                  <input
+                    type="text"
+                    value={draft.defaultCliArgs}
+                    placeholder="e.g., --dangerously-skip-permissions"
+                    onChange={(e) => handleChange("defaultCliArgs", e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="settings-section">

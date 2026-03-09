@@ -73,6 +73,7 @@ export function useFlows() {
       cliType: CliType,
       sessionId: string | null,
       onEvent: (event: FlowExecutionEvent) => void,
+      extraArgs?: string,
     ) => {
       const channel = new Channel<FlowExecutionEvent>();
       channel.onmessage = onEvent;
@@ -81,6 +82,7 @@ export function useFlows() {
         cwd,
         cliType,
         sessionId,
+        extraArgs: extraArgs ?? "",
         onEvent: channel,
       });
     },

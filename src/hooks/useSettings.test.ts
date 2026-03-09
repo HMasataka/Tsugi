@@ -21,6 +21,7 @@ function makeSettings(overrides: Partial<Settings> = {}): Settings {
     notifyOnError: true,
     notifyOnApproval: true,
     autoWorktreeForFlows: false,
+    defaultCliArgs: "",
     keyboardShortcuts: {
       sendPrompt: "Ctrl+Enter",
       abort: "Ctrl+C",

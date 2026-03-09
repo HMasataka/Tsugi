@@ -78,8 +78,8 @@ function App() {
   const queueState = activeSession?.queueState ?? null;
 
   const handleStartSession = useCallback(
-    async (cwd: string, cliType: CliType, resumeSessionId?: string) => {
-      await startSession(cwd, cliType, resumeSessionId);
+    async (cwd: string, cliType: CliType, resumeSessionId?: string, extraArgs?: string) => {
+      await startSession(cwd, cliType, resumeSessionId, extraArgs);
       setShowSetup(false);
     },
     [startSession],
@@ -175,9 +175,9 @@ function App() {
   const handleOpenProjectSession = useCallback(
     (cwd: string, cliType: CliType) => {
       setActivePage("sessions");
-      void startSession(cwd, cliType);
+      void startSession(cwd, cliType, undefined, settings?.defaultCliArgs);
     },
-    [startSession],
+    [startSession, settings],
   );
 
   const handleEditFlow = useCallback((flowId: string) => {
@@ -219,14 +219,14 @@ function App() {
             }
             window.alert("Flow completed successfully.");
           }
-        });
+        }, settings?.defaultCliArgs);
 
         void executionPromise.then((execId) => {
           resolvedExecutionId = execId;
         });
       } else {
         setActivePage("sessions");
-        void startSession(cwd, cliType).then((sessionId) => {
+        void startSession(cwd, cliType, undefined, settings?.defaultCliArgs).then((sessionId) => {
           if (sessionId) {
             const items = flow.steps.map((step) => ({
               prompt: step.prompt,
@@ -362,6 +362,7 @@ function App() {
                 <SessionView
                   state={null}
                   queueState={null}
+                  defaultCliArgs={settings?.defaultCliArgs ?? ""}
                   onStartSession={handleStartSession}
                   onSendPrompt={handleManualSend}
                   onStopSession={handleStopSession}
@@ -384,6 +385,7 @@ function App() {
                 <SessionView
                   state={activeSession.state}
                   queueState={activeSession.queueState}
+                  defaultCliArgs={settings?.defaultCliArgs ?? ""}
                   onStartSession={handleStartSession}
                   onSendPrompt={handleManualSend}
                   onStopSession={handleStopSession}
@@ -426,7 +428,7 @@ function App() {
             <HistoryView
               onRerun={(cwd, cliType, prompts) => {
                 setActivePage("sessions");
-                void startSession(cwd, cliType).then((sessionId) => {
+                void startSession(cwd, cliType, undefined, settings?.defaultCliArgs).then((sessionId) => {
                   if (sessionId) {
                     addItems(sessionId, prompts.map((p) => ({ prompt: p, timeoutMs: null })));
                   }
