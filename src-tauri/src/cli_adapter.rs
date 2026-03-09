@@ -31,13 +31,13 @@ fn get_shell_path() -> Option<&'static str> {
 }
 
 pub trait CliAdapter: Send + Sync {
-    fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>) -> Command;
+    fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>, extra_args: &[String]) -> Command;
 }
 
 pub struct ClaudeCodeAdapter;
 
 impl CliAdapter for ClaudeCodeAdapter {
-    fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>) -> Command {
+    fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>, extra_args: &[String]) -> Command {
         let mut cmd = Command::new("claude");
         cmd.arg("-p")
             .arg(prompt)
@@ -56,6 +56,10 @@ impl CliAdapter for ClaudeCodeAdapter {
             cmd.arg("-r").arg(id);
         }
 
+        for arg in extra_args {
+            cmd.arg(arg);
+        }
+
         cmd
     }
 }
@@ -69,7 +73,7 @@ mod tests {
     fn build_command_without_session_id() {
         let adapter = ClaudeCodeAdapter;
         let cwd = PathBuf::from("/tmp/test");
-        let cmd = adapter.build_command("hello", &cwd, None);
+        let cmd = adapter.build_command("hello", &cwd, None, &[]);
         let as_std = cmd.as_std();
 
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
@@ -84,7 +88,7 @@ mod tests {
     fn build_command_with_session_id() {
         let adapter = ClaudeCodeAdapter;
         let cwd = PathBuf::from("/tmp/test");
-        let cmd = adapter.build_command("next prompt", &cwd, Some("sess-123"));
+        let cmd = adapter.build_command("next prompt", &cwd, Some("sess-123"), &[]);
         let as_std = cmd.as_std();
 
         let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
@@ -98,6 +102,59 @@ mod tests {
                 "--verbose",
                 "-r",
                 "sess-123"
+            ]
+        );
+    }
+
+    #[test]
+    fn build_command_with_extra_args() {
+        let adapter = ClaudeCodeAdapter;
+        let cwd = PathBuf::from("/tmp/test");
+        let extra = vec![
+            "--dangerously-skip-permissions".to_string(),
+            "--model".to_string(),
+            "sonnet".to_string(),
+        ];
+        let cmd = adapter.build_command("hello", &cwd, None, &extra);
+        let as_std = cmd.as_std();
+
+        let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
+        assert_eq!(
+            args,
+            vec![
+                "-p",
+                "hello",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "--dangerously-skip-permissions",
+                "--model",
+                "sonnet",
+            ]
+        );
+    }
+
+    #[test]
+    fn build_command_with_session_id_and_extra_args() {
+        let adapter = ClaudeCodeAdapter;
+        let cwd = PathBuf::from("/tmp/test");
+        let extra = vec!["--max-turns".to_string(), "5".to_string()];
+        let cmd = adapter.build_command("prompt", &cwd, Some("sess-1"), &extra);
+        let as_std = cmd.as_std();
+
+        let args: Vec<&std::ffi::OsStr> = as_std.get_args().collect();
+        assert_eq!(
+            args,
+            vec![
+                "-p",
+                "prompt",
+                "--output-format",
+                "stream-json",
+                "--verbose",
+                "-r",
+                "sess-1",
+                "--max-turns",
+                "5",
             ]
         );
     }

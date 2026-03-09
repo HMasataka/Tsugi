@@ -62,6 +62,7 @@ pub struct FlowContext {
     pub cwd: PathBuf,
     pub cli_type: CliType,
     pub session_id: Option<String>,
+    pub extra_args: Vec<String>,
     pub last_output: String,
     pub on_event: Channel<FlowExecutionEvent>,
     pub step_counter: usize,
@@ -91,6 +92,7 @@ impl FlowRunner {
         cwd: &Path,
         cli_type: &CliType,
         session_id: Option<&str>,
+        extra_args: &[String],
         on_event: &Channel<FlowExecutionEvent>,
         execution_id: &str,
         execution_manager: &Arc<FlowExecutionManager>,
@@ -99,6 +101,7 @@ impl FlowRunner {
             cwd: cwd.to_path_buf(),
             cli_type: cli_type.clone(),
             session_id: session_id.map(|s| s.to_string()),
+            extra_args: extra_args.to_vec(),
             last_output: String::new(),
             on_event: on_event.clone(),
             step_counter: 0,
@@ -213,6 +216,7 @@ impl FlowRunner {
             &context.cwd,
             &context.cli_type,
             context.session_id.as_deref(),
+            &context.extra_args,
         )
         .await?;
 
@@ -275,6 +279,7 @@ impl FlowRunner {
             &context.last_output,
             &context.cwd,
             &context.cli_type,
+            &context.extra_args,
         )
         .await?;
 
@@ -333,6 +338,7 @@ impl FlowRunner {
                 &context.cwd,
                 &context.cli_type,
                 context.session_id.as_deref(),
+                &context.extra_args,
             )
             .await?;
 
@@ -343,6 +349,7 @@ impl FlowRunner {
                 &context.last_output,
                 &context.cwd,
                 &context.cli_type,
+                &context.extra_args,
             )
             .await?;
 
@@ -378,6 +385,7 @@ impl FlowRunner {
                 &context.cwd,
                 &context.cli_type,
                 context.session_id.as_deref(),
+                &context.extra_args,
             )
             .await?;
 
@@ -434,13 +442,14 @@ impl FlowRunner {
         previous_output: &str,
         cwd: &Path,
         cli_type: &CliType,
+        extra_args: &[String],
     ) -> Result<bool, String> {
         let full_prompt = format!(
             "以下は前のステップの出力です:\n---\n{}\n---\n\n{}\n\n回答は必ず「yes」または「no」の一単語のみで答えてください。",
             previous_output, condition_prompt
         );
 
-        let output = Self::run_cli_prompt(&full_prompt, cwd, cli_type, None).await?;
+        let output = Self::run_cli_prompt(&full_prompt, cwd, cli_type, None, extra_args).await?;
 
         let trimmed = output.trim().to_lowercase();
         Ok(trimmed == "yes" || trimmed == "true" || trimmed == "1")
@@ -451,13 +460,14 @@ impl FlowRunner {
         cwd: &Path,
         cli_type: &CliType,
         session_id: Option<&str>,
+        extra_args: &[String],
     ) -> Result<String, String> {
         let adapter: Box<dyn CliAdapter> = match cli_type {
             CliType::ClaudeCode => Box::new(ClaudeCodeAdapter),
             CliType::Codex => return Err("Codex adapter is not implemented".to_string()),
         };
 
-        let mut cmd = adapter.build_command(prompt, cwd, session_id);
+        let mut cmd = adapter.build_command(prompt, cwd, session_id, extra_args);
         let mut child = cmd
             .spawn()
             .map_err(|e| format!("Failed to spawn process: {}", e))?;

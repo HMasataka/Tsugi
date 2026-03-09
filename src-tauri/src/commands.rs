@@ -33,6 +33,7 @@ pub async fn start_session(
     cwd: String,
     cli_type: String,
     resume_session_id: Option<String>,
+    extra_args: String,
     state: tauri::State<'_, SessionManager>,
     project_store: tauri::State<'_, ProjectStore>,
     db: tauri::State<'_, Database>,
@@ -66,11 +67,15 @@ pub async fn start_session(
         log::warn!("Failed to create execution record: {}", e);
     }
 
+    let parsed_args: Vec<String> =
+        shell_words::split(&extra_args).map_err(|e| format!("Failed to parse extra args: {}", e))?;
+
     let session_state = SessionState {
         session_id: resume_session_id,
         cwd: path,
         cli_type: cli,
         status: SessionStatus::Idle,
+        extra_args: parsed_args,
         execution_id: Some(execution_id),
     };
 
@@ -99,7 +104,7 @@ pub async fn send_prompt(
     state: tauri::State<'_, SessionManager>,
     db: tauri::State<'_, Database>,
 ) -> Result<(), String> {
-    let (cwd, resume_id, cli_type, execution_id) = {
+    let (cwd, resume_id, cli_type, execution_id, extra_args) = {
         let mut sessions = state.sessions.lock().await;
         let entry = sessions
             .get_mut(&session_id)
@@ -113,6 +118,7 @@ pub async fn send_prompt(
             entry.state.session_id.clone(),
             entry.state.cli_type.clone(),
             entry.state.execution_id.clone(),
+            entry.state.extra_args.clone(),
         )
     };
 
@@ -148,7 +154,7 @@ pub async fn send_prompt(
         }
     };
 
-    let mut cmd = adapter.build_command(&prompt, &cwd, resume_id.as_deref());
+    let mut cmd = adapter.build_command(&prompt, &cwd, resume_id.as_deref(), &extra_args);
     let mut child = match cmd.spawn() {
         Ok(child) => child,
         Err(e) => {
@@ -527,6 +533,7 @@ pub async fn execute_flow(
     cwd: String,
     cli_type: String,
     session_id: Option<String>,
+    extra_args: String,
     on_event: Channel<FlowExecutionEvent>,
     flow_store: tauri::State<'_, FlowStore>,
     settings_store: tauri::State<'_, SettingsStore>,
@@ -547,6 +554,8 @@ pub async fn execute_flow(
     let settings = settings_store.get()?;
     let use_worktree = settings.auto_worktree_for_flows;
     let exec_id = util::generate_id();
+    let parsed_extra_args: Vec<String> =
+        shell_words::split(&extra_args).map_err(|e| format!("Failed to parse extra args: {}", e))?;
 
     {
         let mut executions = execution_manager.executions.lock().await;
@@ -586,6 +595,7 @@ pub async fn execute_flow(
             effective_cwd,
             &cli,
             session_id.as_deref(),
+            &parsed_extra_args,
             &on_event,
             &exec_id_clone,
             &manager_clone,
@@ -711,5 +721,34 @@ mod tests {
         let json = serde_json::to_value(&event).unwrap();
         assert_eq!(json["event"], "error");
         assert_eq!(json["data"]["message"], "something failed");
+    }
+
+    #[test]
+    fn shell_words_split_handles_quoted_args() {
+        let input = r#"--system-prompt "You are a helpful assistant" --max-turns 5"#;
+        let result = shell_words::split(input).unwrap();
+        assert_eq!(
+            result,
+            vec![
+                "--system-prompt",
+                "You are a helpful assistant",
+                "--max-turns",
+                "5",
+            ]
+        );
+    }
+
+    #[test]
+    fn shell_words_split_handles_empty_string() {
+        let input = "";
+        let result = shell_words::split(input).unwrap();
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn shell_words_split_returns_error_for_unmatched_quote() {
+        let input = r#"--system-prompt "unclosed quote"#;
+        let result = shell_words::split(input);
+        assert!(result.is_err());
     }
 }

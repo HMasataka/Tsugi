@@ -51,6 +51,7 @@ pub struct Settings {
     pub notify_on_error: bool,
     pub notify_on_approval: bool,
     pub auto_worktree_for_flows: bool,
+    pub default_cli_args: String,
     pub keyboard_shortcuts: KeyboardShortcuts,
 }
 
@@ -65,6 +66,7 @@ impl Default for Settings {
             notify_on_error: true,
             notify_on_approval: true,
             auto_worktree_for_flows: false,
+            default_cli_args: String::new(),
             keyboard_shortcuts: KeyboardShortcuts::default(),
         }
     }
@@ -158,6 +160,7 @@ mod tests {
         assert!(settings.notify_on_error);
         assert!(settings.notify_on_approval);
         assert!(!settings.auto_worktree_for_flows);
+        assert_eq!(settings.default_cli_args, "");
     }
 
     #[test]
@@ -242,6 +245,7 @@ mod tests {
         assert_eq!(json["notifyOnError"], true);
         assert_eq!(json["notifyOnApproval"], true);
         assert_eq!(json["autoWorktreeForFlows"], false);
+        assert_eq!(json["defaultCliArgs"], "");
         assert_eq!(json["keyboardShortcuts"]["sendPrompt"], "Ctrl+Enter");
         assert_eq!(json["keyboardShortcuts"]["abort"], "Ctrl+C");
     }

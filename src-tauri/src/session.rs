@@ -25,6 +25,7 @@ pub struct SessionState {
     pub cwd: PathBuf,
     pub cli_type: CliType,
     pub status: SessionStatus,
+    pub extra_args: Vec<String>,
     #[serde(skip)]
     pub execution_id: Option<String>,
 }
@@ -101,12 +102,31 @@ mod tests {
             cwd: PathBuf::from("/tmp/test"),
             cli_type: CliType::ClaudeCode,
             status: SessionStatus::Idle,
+            extra_args: vec![],
             execution_id: None,
         };
         let json = serde_json::to_value(&state).unwrap();
         assert_eq!(json["sessionId"], "test-123");
         assert_eq!(json["cliType"], "claude-code");
         assert_eq!(json["status"], "idle");
+    }
+
+    #[test]
+    fn session_state_serializes_extra_args() {
+        let state = SessionState {
+            session_id: None,
+            cwd: PathBuf::from("/tmp"),
+            cli_type: CliType::ClaudeCode,
+            status: SessionStatus::Idle,
+            extra_args: vec!["--dangerously-skip-permissions".to_string(), "--model".to_string(), "sonnet".to_string()],
+            execution_id: None,
+        };
+        let json = serde_json::to_value(&state).unwrap();
+        let args = json["extraArgs"].as_array().unwrap();
+        assert_eq!(args.len(), 3);
+        assert_eq!(args[0], "--dangerously-skip-permissions");
+        assert_eq!(args[1], "--model");
+        assert_eq!(args[2], "sonnet");
     }
 
     #[test]
