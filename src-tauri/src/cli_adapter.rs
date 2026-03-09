@@ -9,8 +9,13 @@ fn get_shell_path() -> Option<&'static str> {
     SHELL_PATH
         .get_or_init(|| {
             let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+            let path_cmd = if shell.ends_with("/fish") {
+                "string join : $PATH"
+            } else {
+                "echo $PATH"
+            };
             let output = std::process::Command::new(&shell)
-                .args(["-l", "-c", "echo $PATH"])
+                .args(["-l", "-c", path_cmd])
                 .stdout(Stdio::piped())
                 .stderr(Stdio::null())
                 .output()
