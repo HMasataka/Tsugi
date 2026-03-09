@@ -762,6 +762,40 @@
   color: var(--text-primary);
   line-height: 1.5;
   display: block;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+.queue-item-timeout-badge {
+  display: inline-block;
+  font-size: var(--font-size-xs);
+  color: var(--text-muted);
+  background: var(--bg-sunken);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-1);
+}
+
+.queue-item-timeout-input {
+  width: 48px;
+  padding: var(--space-1);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--text-primary);
+  background: var(--bg-sunken);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  outline: none;
+  text-align: right;
+}
+
+.queue-item-timeout-input:focus {
+  border-color: var(--accent);
+}
+
+.queue-item-timeout-input::placeholder {
+  color: var(--text-muted);
 }
 
 .queue-item--completed .queue-item-text {
