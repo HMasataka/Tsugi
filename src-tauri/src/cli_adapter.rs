@@ -1,6 +1,29 @@
 use std::path::Path;
 use std::process::Stdio;
+use std::sync::OnceLock;
 use tokio::process::Command;
+
+static SHELL_PATH: OnceLock<Option<String>> = OnceLock::new();
+
+fn get_shell_path() -> Option<&'static str> {
+    SHELL_PATH
+        .get_or_init(|| {
+            let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
+            let output = std::process::Command::new(&shell)
+                .args(["-l", "-c", "echo $PATH"])
+                .stdout(Stdio::piped())
+                .stderr(Stdio::null())
+                .output()
+                .ok()?;
+            let path = String::from_utf8(output.stdout).ok()?.trim().to_string();
+            if path.is_empty() {
+                None
+            } else {
+                Some(path)
+            }
+        })
+        .as_deref()
+}
 
 pub trait CliAdapter: Send + Sync {
     fn build_command(&self, prompt: &str, cwd: &Path, session_id: Option<&str>) -> Command;
@@ -19,6 +42,10 @@ impl CliAdapter for ClaudeCodeAdapter {
             .current_dir(cwd)
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
+
+        if let Some(path) = get_shell_path() {
+            cmd.env("PATH", path);
+        }
 
         if let Some(id) = session_id {
             cmd.arg("-r").arg(id);
@@ -68,5 +95,12 @@ mod tests {
                 "sess-123"
             ]
         );
+    }
+
+    #[test]
+    fn get_shell_path_returns_some() {
+        let path = get_shell_path();
+        assert!(path.is_some());
+        assert!(!path.unwrap().is_empty());
     }
 }
